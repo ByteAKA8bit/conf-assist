@@ -4,7 +4,7 @@ import CryptoJS from 'crypto-js'
 import { Layout, Sidebar, Content, Prompt } from '@components'
 import { QuestionList } from '@components/question-list'
 import { Topbar } from '@components/topbar'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 /**
  *
@@ -16,10 +16,11 @@ import { useState } from 'react'
  */
 
 function App() {
-  const [voiceID, setVoiceID] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const audioContextRef = useRef()
   const questionList = ['11111', '222222', '333333', 'question2', 'question43', 'question5243']
 
-  const { wsCreate, wsReceived } = window.api
+  const { wsCreate, wsReceived, wsSend, requestMediaAccess } = window.api
   const {
     VITE_TENCENT_APPID,
     VITE_TENCENT_ENGINEMODE,
@@ -27,7 +28,49 @@ function App() {
     VITE_TENCENT_SECRETKEY
   } = window.localEnv
 
+  const sendAudioData = async (wsUrl) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      audioContextRef.current = new AudioContext()
+      const audioTrack = stream.getAudioTracks()[0]
+      const mediaStream = new MediaStream()
+      mediaStream.addTrack(audioTrack)
+      const mediaStreamSource = audioContextRef.current.createMediaStreamSource(mediaStream)
+      await audioContextRef.current.audioWorklet.addModule('audioStream2BinaryProcessor.js')
+      const audioProcessorNode = new AudioWorkletNode(
+        audioContextRef.current,
+        'audio-stream-to-binary-processor',
+        {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          channelCount: 1
+        }
+      )
+      audioProcessorNode.port.onmessage = (event) => {
+        if (event.data.audioData) {
+          wsSend(wsUrl, event.data.audioData)
+        }
+      }
+      mediaStreamSource &&
+        mediaStreamSource.connect(audioProcessorNode).connect(audioContextRef.current.destination)
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   const handleStart = async () => {
+    if (audioContextRef.current) {
+      if (isRecording) {
+        audioContextRef.current.suspend()
+        setIsRecording(false)
+        return
+      }
+      setIsRecording(true)
+      audioContextRef.current.resume()
+      return
+    }
+
+    await requestMediaAccess('microphone')
     const baseURL = `asr.cloud.tencent.com/asr/v2/${VITE_TENCENT_APPID}?`
     const params = {
       secretid: VITE_TENCENT_SECRETID,
@@ -39,33 +82,38 @@ function App() {
       needvad: 1,
       filter_modal: 1
     }
-
     const paramsStr = queryString.stringify(params)
     const signature = encodeURI(
       CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA1(baseURL + paramsStr, VITE_TENCENT_SECRETKEY))
     )
     const wsUrl = `wss://${baseURL + paramsStr}&signature=${signature}`
-    // 建立连接
-    if (!voiceID) {
-      wsCreate(wsUrl)
-      wsReceived((res) => {
-        if (res.key === wsUrl) {
-          const data = JSON.parse(res.originData)
-          if (data.code === 0) {
-            setVoiceID(data.voice_id)
-            // 开始录音并传输
+
+    wsCreate(wsUrl)
+    wsReceived((res) => {
+      if (res.key === wsUrl) {
+        const data = JSON.parse(res.originData)
+        // 连接成功
+        if (data.code === 0 && data.message_id === undefined) {
+          setIsRecording(true)
+          console.log(data)
+          sendAudioData(wsUrl)
+        }
+        // 返回识别结果
+        if (data.code === 0 && data.message_id) {
+          console.log(data.result)
+          if (data.final) {
+            console.log('结束')
           }
         }
-      })
-    } else {
-      wsReceived((res) => {
-        if (res.key === wsUrl) {
-          const data = JSON.parse(res.originData)
-          // 接收数据
-          console.log(data)
+        if (data.code !== 0) {
+          if (audioContextRef.current) {
+            audioContextRef.current.close()
+          }
+          audioContextRef.current = null
+          setIsRecording(false)
         }
-      })
-    }
+      }
+    })
   }
 
   return (
@@ -77,7 +125,7 @@ function App() {
         </Sidebar>
         <Content className="p-2 flex flex-col bg-zinc-600">
           <div className="flex-1">回答</div>
-          <Prompt handleStart={handleStart} handleRegenerate={null} />
+          <Prompt handleStart={handleStart} handleRegenerate={null} isRecording={isRecording} />
         </Content>
       </Layout>
     </>

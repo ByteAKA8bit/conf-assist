@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Main Process",
+      "name": "Main Process",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceRoot}",
@@ -16,7 +16,7 @@
       }
     },
     {
-      "name": "Debug Renderer Process",
+      "name": "Renderer Process",
       "port": 9222,
       "request": "attach",
       "type": "chrome",
@@ -30,7 +30,7 @@
   "compounds": [
     {
       "name": "Debug All",
-      "configurations": ["Debug Main Process", "Debug Renderer Process"],
+      "configurations": ["Main Process", "Renderer Process"],
       "presentation": {
         "order": 1
       }

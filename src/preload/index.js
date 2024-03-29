@@ -2,16 +2,16 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 // Custom APIs for renderer
 const api = {
+  requestMediaAccess: (args) => ipcRenderer.invoke('request-media-access', args),
   fetch: (...args) => ipcRenderer.invoke('fetch', args),
-  wsCreate: (...args) => ipcRenderer.send('ws:create', args),
+  wsCreate: (...args) => ipcRenderer.send('ws:create', ...args),
   wsCreated: (callback) => ipcRenderer.on('ws:created', (_event, value) => callback(value)),
-  wsSend: (...args) => ipcRenderer.send('ws:send', args),
+  wsSend: (...args) => ipcRenderer.send('ws:send', ...args),
   wsReceived: (callback) =>
     ipcRenderer.on('ws:received', (_event, value) => {
-      console.log(value)
       callback(value)
     }),
-  wsClose: () => ipcRenderer.send('ws:close')
+  wsClose: (...args) => ipcRenderer.send('ws:close', ...args)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

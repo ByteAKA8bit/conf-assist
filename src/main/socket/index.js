@@ -13,6 +13,7 @@ export function createWebSocket(url, onConnected, onReceived) {
   socket.onopen = (event) => {
     if (event.target.readyState === event.target.OPEN) {
       socketList.push({ key: url, socket })
+      console.log('连接', url, '成功')
       onConnected()
     }
   }
@@ -20,18 +21,21 @@ export function createWebSocket(url, onConnected, onReceived) {
   socket.onclose = () => {
     const index = socketList.findIndex((item) => item.key === url)
     if (typeof index === 'number') {
+      console.log('soket closed')
       socketList.splice(index, 1)
     }
   }
   socket.onerror = () => {
     const index = socketList.findIndex((item) => item.key === url)
     if (typeof index === 'number') {
+      console.log('soket error')
       socketList.splice(index, 1)
     }
   }
   // 连接在接收到消息时，将消息用key标识，封装一层后返回
   socket.onmessage = (event) => {
     const data = event.data
+    console.log(event.data)
     onReceived({ key: url, originData: data })
   }
 }
@@ -41,7 +45,7 @@ export function getWebSocket(url) {
   if (!socket) {
     return null
   }
-  return socket
+  return socket.socket
 }
 
 export function closeWebSocket(url) {
