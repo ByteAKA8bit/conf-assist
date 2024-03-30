@@ -93,30 +93,56 @@ ipcMain.handle('request-media-access', (event, args) => {
   return requestMediaAccess(args)
 })
 
-ipcMain.on('ws:create', (event, url) => {
+ipcMain.on('ws:create', (event, key, url) => {
   createWebSocket(
+    key,
     url,
     () => {
+      console.log(BrowserWindow.getAllWindows())
+      // 广播连接成功
       BrowserWindow.getAllWindows().map((window) => {
-        window.webContents.send('ws:created', { code: 200, message: 'connection success' })
+        window.webContents.send('ws:created', {
+          key,
+          code: 200,
+          message: 'connection success'
+        })
       })
     },
     (message) => {
+      // 广播接收到ws的消息
       BrowserWindow.getAllWindows().map((window) => {
         window.webContents.send('ws:received', message)
+      })
+    },
+    () => {
+      // 广播连接关闭
+      BrowserWindow.getAllWindows().map((window) => {
+        window.webContents.send('ws:closed', { key: url })
+      })
+    },
+    () => {
+      // 广播连接错误
+      BrowserWindow.getAllWindows().map((window) => {
+        window.webContents.send('ws:error', { key: url })
       })
     }
   )
 })
 
-ipcMain.on('ws:send', (event, url, message) => {
-  const socket = getWebSocket(url)
+ipcMain.on('ws:send', (event, key, message) => {
+  const socket = getWebSocket(key)
   if (socket) {
-    console.log('send websocket message', message)
+    if (socket.readyState !== 1) {
+      setTimeout(() => {
+        if (!socket || socket.readyState !== 1) {
+          this.socket.send(message)
+        }
+      }, 40)
+    }
     socket.send(message)
   }
 })
 
-ipcMain.on('ws:close', (event, url) => {
-  closeWebSocket(url)
+ipcMain.on('ws:close', (event, key) => {
+  closeWebSocket(key)
 })

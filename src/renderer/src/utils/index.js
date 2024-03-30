@@ -1,6 +1,22 @@
 import clsx from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { v4 as uuidv4 } from 'uuid'
 
 export const cn = (...args) => {
   return twMerge(clsx(...args))
+}
+
+export const {
+  wsCreate,
+  wsCreated,
+  wsSend,
+  wsReceived,
+  wsClose,
+  wsClosed,
+  wsError,
+  requestMediaAccess
+} = window.api
+
+export const generateWebSocketID = () => {
+  return uuidv4()
 }

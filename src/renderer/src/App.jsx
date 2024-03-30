@@ -4,23 +4,29 @@ import CryptoJS from 'crypto-js'
 import { Layout, Sidebar, Content, Prompt } from '@components'
 import { QuestionList } from '@components/question-list'
 import { Topbar } from '@components/topbar'
-import { useRef, useState } from 'react'
-
-/**
- *
- * # 获取输入的激活码
- * # 解析激活码过期时间，如果未过期，打开聊天窗口
- * 点击开始按钮，监听语音输入
- * 当无语音输入时，发送请求到API
- * 等待API返回后将内容显示在右侧
- */
+import { useEffect, useRef, useState } from 'react'
+import {
+  wsCreate,
+  wsCreated,
+  wsSend,
+  wsReceived,
+  wsClose,
+  wsClosed,
+  wsError,
+  requestMediaAccess,
+  generateWebSocketID
+} from '@utils'
 
 function App() {
+  // 连接时禁用按钮
+  const wsKey = generateWebSocketID()
+  const [connectingServer, setConnectingServer] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
-  const audioContextRef = useRef()
-  const questionList = ['11111', '222222', '333333', 'question2', 'question43', 'question5243']
+  const canSendMessage = useRef(false)
 
-  const { wsCreate, wsReceived, wsSend, requestMediaAccess } = window.api
+  const wsUrl = useRef('')
+  const audioContextRef = useRef()
+  const questionList = ['11111', '222222', '333333']
   const {
     VITE_TENCENT_APPID,
     VITE_TENCENT_ENGINEMODE,
@@ -28,14 +34,17 @@ function App() {
     VITE_TENCENT_SECRETKEY
   } = window.localEnv
 
-  const sendAudioData = async (wsUrl) => {
+  useEffect(() => {
+    // 开启语音记录
+    getAudioData()
+  }, [])
+
+  const getAudioData = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      audioContextRef.current = new AudioContext()
-      const audioTrack = stream.getAudioTracks()[0]
-      const mediaStream = new MediaStream()
-      mediaStream.addTrack(audioTrack)
-      const mediaStreamSource = audioContextRef.current.createMediaStreamSource(mediaStream)
+      await requestMediaAccess('microphone')
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      audioContextRef.current = new AudioContext({ sampleRate: 48000 })
+      const mediaStreamSource = audioContextRef.current.createMediaStreamSource(stream)
       await audioContextRef.current.audioWorklet.addModule('audioStream2BinaryProcessor.js')
       const audioProcessorNode = new AudioWorkletNode(
         audioContextRef.current,
@@ -47,8 +56,10 @@ function App() {
         }
       )
       audioProcessorNode.port.onmessage = (event) => {
-        if (event.data.audioData) {
-          wsSend(wsUrl, event.data.audioData)
+        console.log(canSendMessage)
+        if (canSendMessage && event.data.audioData) {
+          // console.log(event.data.audioData)
+          wsSend(wsKey, event.data.audioData)
         }
       }
       mediaStreamSource &&
@@ -60,17 +71,19 @@ function App() {
 
   const handleStart = async () => {
     if (audioContextRef.current) {
+      // 当前正在记录
       if (isRecording) {
-        audioContextRef.current.suspend()
         setIsRecording(false)
+        audioContextRef.current.suspend()
+        canSendMessage.current = false
+        // 关闭服务器连接
+        wsClose(wsKey)
         return
       }
       setIsRecording(true)
       audioContextRef.current.resume()
-      return
     }
 
-    await requestMediaAccess('microphone')
     const baseURL = `asr.cloud.tencent.com/asr/v2/${VITE_TENCENT_APPID}?`
     const params = {
       secretid: VITE_TENCENT_SECRETID,
@@ -86,32 +99,80 @@ function App() {
     const signature = encodeURI(
       CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA1(baseURL + paramsStr, VITE_TENCENT_SECRETKEY))
     )
-    const wsUrl = `wss://${baseURL + paramsStr}&signature=${signature}`
+    // 记录最终请求地址
+    wsUrl.current = `wss://${baseURL + paramsStr}&signature=${signature}`
 
-    wsCreate(wsUrl)
+    // 连接语音识别服务器
+    wsCreate(wsKey, wsUrl.current)
+    // 设置连接语音识别服务器状态为true
+    setConnectingServer(true)
+
+    // 当连接创建成功
+    wsCreated((res) => {
+      if (res.key === wsKey && res.code === 200) {
+        console.log('连接创建成功')
+        setConnectingServer(false)
+      }
+    })
+    // 接收到消息
     wsReceived((res) => {
-      if (res.key === wsUrl) {
+      if (res.key === wsKey) {
         const data = JSON.parse(res.originData)
-        // 连接成功
-        if (data.code === 0 && data.message_id === undefined) {
-          setIsRecording(true)
-          console.log(data)
-          sendAudioData(wsUrl)
+        console.log('接收到服务器消息 >> :', data)
+        switch (data.code) {
+          case 0:
+            if (data.message_id === undefined) {
+              // 服务器返回握手成功,可以开始发送数据
+              canSendMessage.current = true
+            } else {
+              console.log(data.result)
+              if (data.final) {
+                if (audioContextRef.current) {
+                  audioContextRef.current.suspend()
+                }
+              }
+            }
+            break
+          case 4002:
+            console.log(data.message)
+            if (audioContextRef.current) {
+              audioContextRef.current.suspend()
+            }
+            canSendMessage.current = false
+            setIsRecording(false)
+            break
+          case 4007:
+            console.log(data.message)
+            if (audioContextRef.current) {
+              audioContextRef.current.suspend()
+            }
+            canSendMessage.current = false
+            setIsRecording(false)
+            break
         }
-        // 返回识别结果
-        if (data.code === 0 && data.message_id) {
-          console.log(data.result)
-          if (data.final) {
-            console.log('结束')
-          }
+      }
+    })
+    // 连接关闭
+    wsClosed((res) => {
+      if (res.key === wsKey) {
+        console.log('连接关闭')
+        if (audioContextRef.current) {
+          audioContextRef.current.suspend()
         }
-        if (data.code !== 0) {
-          if (audioContextRef.current) {
-            audioContextRef.current.close()
-          }
-          audioContextRef.current = null
-          setIsRecording(false)
+        canSendMessage.current = false
+        setConnectingServer(false)
+        setIsRecording(false)
+      }
+    })
+    wsError((res) => {
+      if (res.key === wsKey) {
+        console.log('连接报错')
+        if (audioContextRef.current) {
+          audioContextRef.current.suspend()
         }
+        canSendMessage.current = false
+        setConnectingServer(false)
+        setIsRecording(false)
       }
     })
   }
@@ -125,7 +186,12 @@ function App() {
         </Sidebar>
         <Content className="p-2 flex flex-col bg-zinc-600">
           <div className="flex-1">回答</div>
-          <Prompt handleStart={handleStart} handleRegenerate={null} isRecording={isRecording} />
+          <Prompt
+            handleStart={handleStart}
+            handleRegenerate={null}
+            connecting={connectingServer}
+            isRecording={isRecording}
+          />
         </Content>
       </Layout>
     </>
