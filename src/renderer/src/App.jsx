@@ -16,6 +16,7 @@ import {
   requestMediaAccess,
   generateWebSocketID
 } from '@utils'
+import { mainFetch } from './utils'
 
 function App() {
   // 连接时禁用按钮
@@ -31,11 +32,11 @@ function App() {
     VITE_TENCENT_APPID,
     VITE_TENCENT_ENGINEMODE,
     VITE_TENCENT_SECRETID,
-    VITE_TENCENT_SECRETKEY
+    VITE_TENCENT_SECRETKEY,
+    VITE_GOOGLE_AI_STUIDO_KEY
   } = window.localEnv
 
   useEffect(() => {
-    // 开启语音记录
     getAudioData()
   }, [])
 
@@ -56,9 +57,7 @@ function App() {
         }
       )
       audioProcessorNode.port.onmessage = (event) => {
-        console.log(canSendMessage)
         if (canSendMessage && event.data.audioData) {
-          // console.log(event.data.audioData)
           wsSend(wsKey, event.data.audioData)
         }
       }
@@ -177,6 +176,19 @@ function App() {
     })
   }
 
+  const getAnswer = async () => {
+    console.log(VITE_GOOGLE_AI_STUIDO_KEY)
+    const result = await mainFetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${VITE_GOOGLE_AI_STUIDO_KEY}`,
+      {
+        method: 'post',
+        header: 'Content-Type: application/json'
+      },
+      { test: 'value' }
+    )
+    console.log(result)
+  }
+
   return (
     <>
       <Topbar />
@@ -188,7 +200,7 @@ function App() {
           <div className="flex-1">回答</div>
           <Prompt
             handleStart={handleStart}
-            handleRegenerate={null}
+            handleRegenerate={getAnswer}
             connecting={connectingServer}
             isRecording={isRecording}
           />

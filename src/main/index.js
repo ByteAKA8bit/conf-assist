@@ -4,6 +4,9 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { closeWebSocket, createWebSocket, getWebSocket } from './socket'
 import { requestMediaAccess } from './requestMediaAccess'
+import HttpWorker from './workers/httpWorker?nodeWorker'
+import { runWorker } from './workers'
+import { fetchRequest } from './net'
 
 function createWindow() {
   // Create the browser window.
@@ -16,8 +19,9 @@ function createWindow() {
     frame: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: true,
-      contextIsolation: true
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegrationInWorker: true
     }
   })
 
@@ -88,6 +92,11 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+
+ipcMain.handle('fetch', async (event, url, options, body) => {
+  const result = await fetchRequest(url, options, body)
+  return result
+})
 
 ipcMain.handle('request-media-access', (event, args) => {
   return requestMediaAccess(args)

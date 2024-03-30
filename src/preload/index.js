@@ -3,7 +3,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 // Custom APIs for renderer
 const api = {
   requestMediaAccess: (args) => ipcRenderer.invoke('request-media-access', args),
-  fetch: (...args) => ipcRenderer.invoke('fetch', args),
+  mainFetch: (...args) => {
+    console.log(args)
+    return ipcRenderer.invoke('fetch', ...args)
+  },
 
   wsCreate: (...args) => ipcRenderer.send('ws:create', ...args),
   wsCreated: (callback) => ipcRenderer.on('ws:created', (_event, value) => callback(value)),

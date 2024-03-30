@@ -7,6 +7,7 @@ export const cn = (...args) => {
 }
 
 export const {
+  mainFetch,
   wsCreate,
   wsCreated,
   wsSend,
