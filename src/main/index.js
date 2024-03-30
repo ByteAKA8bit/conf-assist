@@ -1,10 +1,9 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, desktopCapturer } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { closeWebSocket, createWebSocket, getWebSocket } from './socket'
 import { requestMediaAccess } from './requestMediaAccess'
-import HttpWorker from './workers/httpWorker?nodeWorker'
 import { runWorker } from './workers'
 import { fetchRequest } from './net'
 
@@ -27,7 +26,6 @@ function createWindow() {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
-    mainWindow.webContents.openDevTools()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -74,6 +72,8 @@ app.whenReady().then(() => {
 
   createWindow()
 
+  testWorker()
+
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
@@ -90,12 +90,40 @@ app.on('window-all-closed', () => {
   }
 })
 
+const testWorker = async () => {
+  const result = await runWorker({ test: 'value' })
+  console.log(result)
+}
+
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
 
 ipcMain.handle('fetch', async (event, url, options, body) => {
   const result = await fetchRequest(url, options, body)
   return result
+})
+
+ipcMain.handle('audio:source', async (event, capturerType, appName) => {
+  // 类型分为
+  // 捕获应用音频
+  // 捕获整个屏幕
+  // 捕获麦克风输入
+  let source = null
+  if (capturerType === 'app') {
+    const sources = await desktopCapturer.getSources({
+      types: ['window']
+    })
+    source = sources.find((source) => source.name === appName)
+  }
+  if (capturerType === 'screen') {
+    source = await desktopCapturer.getSources({
+      types: ['screen']
+    })[0]
+  }
+  if (capturerType === 'microphone') {
+    source = capturerType
+  }
+  return source
 })
 
 ipcMain.handle('request-media-access', (event, args) => {
@@ -107,7 +135,6 @@ ipcMain.on('ws:create', (event, key, url) => {
     key,
     url,
     () => {
-      console.log(BrowserWindow.getAllWindows())
       // 广播连接成功
       BrowserWindow.getAllWindows().map((window) => {
         window.webContents.send('ws:created', {
@@ -126,13 +153,13 @@ ipcMain.on('ws:create', (event, key, url) => {
     () => {
       // 广播连接关闭
       BrowserWindow.getAllWindows().map((window) => {
-        window.webContents.send('ws:closed', { key: url })
+        window.webContents.send('ws:closed', { key })
       })
     },
     () => {
       // 广播连接错误
       BrowserWindow.getAllWindows().map((window) => {
-        window.webContents.send('ws:error', { key: url })
+        window.webContents.send('ws:error', { key })
       })
     }
   )

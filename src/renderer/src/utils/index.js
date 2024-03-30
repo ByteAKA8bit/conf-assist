@@ -15,7 +15,8 @@ export const {
   wsClose,
   wsClosed,
   wsError,
-  requestMediaAccess
+  requestMediaAccess,
+  audioGetSource
 } = window.api
 
 export const generateWebSocketID = () => {

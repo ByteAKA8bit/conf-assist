@@ -5,7 +5,6 @@ class AudioStream2BinaryProcessor extends AudioWorkletProcessor {
     this.nextUpdateFrame = 40
     this.sampleCount = 0
     this.bitCount = 0
-    this.sampleRate = 44100
   }
 
   get intervalInFrames() {

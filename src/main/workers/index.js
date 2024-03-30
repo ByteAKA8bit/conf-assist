@@ -1,12 +1,8 @@
-import HttpsRequestWorker from './httpWorker?nodeWorker'
+import exampleWorker from './example?nodeWorker'
 
-const Workers = {
-  https: HttpsRequestWorker
-}
-
-export const runWorker = (type, workerData) => {
+export const runWorker = (workerData) => {
   return new Promise((resolve, reject) => {
-    const worker = Workers[type]({ workerData })
+    const worker = exampleWorker({ workerData })
     worker.on('message', (response) => {
       resolve(response)
     })

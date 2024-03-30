@@ -14,14 +14,14 @@ const socketList = []
  */
 export function createWebSocket(key, url, onConnected, onReceived, onClosed, onError) {
   // 检查连接池中是否有当前url的连接,没有则创建连接
-  if (socketList.find((item) => item.key === key)) {
+  if (getWebSocket(key)) {
     return
   }
   const socket = new WebSocket(url)
   // 连接成功后将连接加入到socketList中
   socket.onopen = (event) => {
     if (event.target.readyState === event.target.OPEN) {
-      socketList.push({ key: key, socket })
+      socketList.push({ key, socket })
       console.log('连接', url, '成功')
       onConnected()
     }
@@ -29,7 +29,6 @@ export function createWebSocket(key, url, onConnected, onReceived, onClosed, onE
   // 连接在接收到消息时，将消息用key标识，封装一层后返回
   socket.onmessage = (event) => {
     const data = event.data
-    console.log(event.data)
     onReceived({ key, originData: data })
   }
   // 连接关闭后在socketList中删除该连接
@@ -37,7 +36,6 @@ export function createWebSocket(key, url, onConnected, onReceived, onClosed, onE
     const index = socketList.findIndex((item) => item.key === key)
     if (typeof index === 'number') {
       socketList.splice(index, 1)
-      console.log(socketList)
       onClosed()
     }
   }
@@ -45,7 +43,6 @@ export function createWebSocket(key, url, onConnected, onReceived, onClosed, onE
     const index = socketList.findIndex((item) => item.key === key)
     if (typeof index === 'number') {
       socketList.splice(index, 1)
-      console.log(socketList)
       onError()
     }
   }
@@ -60,7 +57,7 @@ export function getWebSocket(key) {
 }
 
 export function closeWebSocket(key) {
-  const socket = socketList.find((item) => (item.key = key))
+  const socket = getWebSocket(key)
   if (socket) {
     socket.close()
     return true

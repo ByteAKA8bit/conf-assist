@@ -14,7 +14,6 @@ export const Sidebar = ({ className, children, ...props }) => {
     <aside
       onClick={(events) => {
         events.stopPropagation()
-        console.log(111)
       }}
       className={cn('w-1/4 mt-8 min-w-[300px] h-[100vh-2rem] overflow-auto', className)}
       {...props}

@@ -14,8 +14,11 @@ export const fetchRequest = (url, options, body) => {
         url: url,
         ...options
       })
+      // Post请求
       if (options.method.toLowerCase() === 'post') {
-        request.write(JSON.stringify(body))
+        if (body) {
+          request.write(JSON.stringify(body))
+        }
       }
       request.on('response', (response) => {
         const chunkList = []
@@ -23,7 +26,7 @@ export const fetchRequest = (url, options, body) => {
           chunkList.push(chunk)
         })
         response.on('end', () => {
-          resolve(chunkList.join(''))
+          resolve(JSON.parse(chunkList.join('')))
         })
       })
       request.on('error', reject)
