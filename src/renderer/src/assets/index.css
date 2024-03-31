@@ -15,6 +15,7 @@
     @apply font-mono antialiased text-white;
     @apply bg-zinc-900/50;
     @apply overflow-hidden;
+    @apply font-sans;
   }
 
   header {
