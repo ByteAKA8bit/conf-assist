@@ -24,6 +24,7 @@
     "electron-updater": "^6.1.7",
     "query-string": "^9.0.0",
     "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
