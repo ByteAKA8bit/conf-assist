@@ -20,6 +20,7 @@ import {
 import { mainFetch } from './utils'
 import { AudioCapturer } from './utils/audioCapturer'
 import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 function App() {
   const wsKey = generateWebSocketID()
@@ -245,7 +246,10 @@ function App() {
           />
         </Sidebar>
         <Content className="p-2 flex flex-col bg-zinc-600">
-          <Markdown className="p-4 flex-grow-0 h-[calc(100vh-40px-1.5rem)] overflow-auto leading-7">
+          <Markdown
+            className="p-4 flex-grow-0 h-[calc(100vh-40px-1.5rem)] overflow-auto leading-7"
+            remarkPlugins={[remarkGfm]}
+          >
             {questionList[selectedQuestionIndex]?.answer ?? '等待生成答案'}
           </Markdown>
           <Prompt
