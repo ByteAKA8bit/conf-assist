@@ -9,12 +9,12 @@ export const cn = (...args) => {
 export const {
   mainFetch,
   wsCreate,
-  wsCreated,
   wsSend,
-  wsReceived,
   wsClose,
-  wsClosed,
-  wsError,
+  wsCreated: wsCreatedRegister,
+  wsReceived: wsReceivedRegister,
+  wsClosed: wsClosedRegister,
+  wsError: wsErrorRegister,
   requestMediaAccess,
   audioGetSource
 } = window.api
