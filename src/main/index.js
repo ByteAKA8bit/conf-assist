@@ -20,12 +20,14 @@ function createWindow() {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegrationInWorker: true
-    }
+      nodeIntegrationInWorker: true,
+    },
   })
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+    // auto open DevTools
+    // mainWindow.webContents.openDevTools()
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -104,20 +106,16 @@ ipcMain.handle('fetch', async (event, url, options, body) => {
 })
 
 ipcMain.handle('audio:source', async (event, capturerType, appName) => {
-  // 类型分为
-  // 捕获应用音频
-  // 捕获整个屏幕
-  // 捕获麦克风输入
   let source = null
   if (capturerType === 'app') {
     const sources = await desktopCapturer.getSources({
-      types: ['window']
+      types: ['window'],
     })
     source = sources.find((source) => source.name === appName)
   }
   if (capturerType === 'screen') {
     source = await desktopCapturer.getSources({
-      types: ['screen']
+      types: ['screen'],
     })[0]
   }
   if (capturerType === 'microphone') {
@@ -140,7 +138,7 @@ ipcMain.on('ws:create', (event, key, url) => {
         window.webContents.send('ws:created', {
           key,
           code: 200,
-          message: 'connection success'
+          message: 'connection success',
         })
       })
     },
@@ -161,7 +159,7 @@ ipcMain.on('ws:create', (event, key, url) => {
       BrowserWindow.getAllWindows().map((window) => {
         window.webContents.send('ws:error', { key })
       })
-    }
+    },
   )
 })
 

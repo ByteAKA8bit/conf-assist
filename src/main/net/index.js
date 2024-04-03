@@ -12,7 +12,7 @@ export const fetchRequest = (url, options, body) => {
     try {
       const request = net.request({
         url: url,
-        ...options
+        ...options,
       })
       // Post请求
       if (options.method.toLowerCase() === 'post') {
@@ -20,14 +20,25 @@ export const fetchRequest = (url, options, body) => {
           request.write(JSON.stringify(body))
         }
       }
+
       request.on('response', (response) => {
         const chunkList = []
+
         response.on('data', (chunk) => {
+          const data = new TextDecoder().decode(chunk).slice(5)
+
+          console.log(JSON.parse(data))
+          // 这里向子进程发送结果
           chunkList.push(chunk)
         })
-        response.on('end', () => {
-          resolve(JSON.parse(chunkList.join('')))
+        response.on('end', async () => {
+          // 这里向子进程发送结束
+          console.log(chunkList.join('').toString())
+          resolve(chunkList)
         })
+        if (response.statusCode === 200) {
+          resolve(null)
+        }
       })
       request.on('error', reject)
       request.end()
