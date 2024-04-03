@@ -10,10 +10,12 @@
       "windows": {
         "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/electron-vite.cmd"
       },
+      "internalConsoleOptions": "openOnSessionStart",
       "runtimeArgs": ["--sourcemap"],
       "env": {
         "REMOTE_DEBUGGING_PORT": "9222"
-      }
+      },
+      "smartStep": true
     },
     {
       "name": "Renderer Process",
@@ -22,6 +24,12 @@
       "type": "chrome",
       "webRoot": "${workspaceFolder}/src/renderer",
       "timeout": 60000,
+      "internalConsoleOptions": "openOnSessionStart",
+      "disableNetworkCache": true,
+      "sourceMaps": true,
+      "resolveSourceMapLocations": ["${webRoot}/**", "!**/node_modules/**"],
+      "outFiles": ["${webRoot}/**/*.(m|c|)js", "!**/node_modules/**"],
+      "smartStep": true,
       "presentation": {
         "hidden": true
       }
