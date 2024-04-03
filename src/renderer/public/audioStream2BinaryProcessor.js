@@ -56,7 +56,7 @@ class AudioStream2BinaryProcessor extends AudioWorkletProcessor {
           sampleCount: this.sampleCount,
           bitCount: this.bitCount,
           output,
-          audioDataRaw: audioData
+          audioDataRaw: audioData,
         })
         this.audioData = []
       }
