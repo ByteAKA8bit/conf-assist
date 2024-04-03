@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/renderer/src/*"],
+      "@assets/*": ["./src/renderer/src/assets/*"],
+      "@components/*": ["./src/renderer/src/components/*"],
+      "@hooks/*": ["./src/renderer/src/hooks/*"],
+      "@provider/*": ["./src/renderer/src/provider/*"],
+      "@store/*": ["./src/renderer/src/store/*"],
+      "@utils/*": ["./src/renderer/src/utils/*"]
+    }
+  }
+}
