@@ -100,7 +100,7 @@ function App() {
       }
       return data[valuePath[index]]
     } catch (error) {
-      console.error(error)
+      console.error('GET_TEXT_ERROR: ', error)
       serverStateDispatch(ServerStateMap.AIFailed)
     }
   }
@@ -205,7 +205,6 @@ function App() {
       // 记录最终请求地址
       return `wss://${baseURL + paramsStr}&signature=${signature}`
     } else {
-      console.log(import.meta.env)
       // 请求地址根据语种不同变化
       const url = 'wss://rtasr.xfyun.cn/v1/ws'
       const appId = import.meta.env.VITE_XFYUN_APP_ID
@@ -250,7 +249,6 @@ function App() {
         break
       case 4007:
         // 编码错误
-        console.log(data.message)
         if (audioCapturerRef.current) {
           audioCapturerRef.current.stop()
         }
@@ -279,6 +277,8 @@ function App() {
           content.cn.st.rt[0].ws.forEach((item) => {
             if (item.cw[0].wp !== 'p') {
               words += item.cw[0].w
+            } else {
+              words += ' '
             }
           })
 
