@@ -78,9 +78,9 @@ export class AudioCapturer {
   async getUserMedia(getStreamAudioSuccess, getStreamAudioFail) {
     const mediaOption = {
       audio: {
-        device_id: this.source.id
+        device_id: this.source.id,
       },
-      video: false
+      video: false,
     }
     if (this.source === 'microphone') {
       // 麦克风
@@ -106,7 +106,7 @@ export class AudioCapturer {
         },
         function (err) {
           getStreamAudioFail.call(this, err)
-        }
+        },
       )
     } else {
       if (
@@ -116,10 +116,10 @@ export class AudioCapturer {
         this.isLog &&
           console.log(
             'chrome下获取浏览器录音功能，因为安全性问题，需要在localhost或127.0.0.1或https下才能获取权限',
-            TAG
+            TAG,
           )
         this.onError(
-          'chrome下获取浏览器录音功能，因为安全性问题，需要在localhost或127.0.0.1或https下才能获取权限'
+          'chrome下获取浏览器录音功能，因为安全性问题，需要在localhost或127.0.0.1或https下才能获取权限',
         )
       } else {
         this.isLog && console.log('无法获取浏览器录音功能，请升级浏览器或使用chrome', TAG)
@@ -197,7 +197,7 @@ export class AudioCapturer {
       const myNode = new AudioWorkletNode(this.audioContext, 'audio-stream-to-binary-processor', {
         numberOfInputs: 1,
         numberOfOutputs: 1,
-        channelCount: 1
+        channelCount: 1,
       })
 
       myNode.onprocessorerror = () => {
@@ -258,7 +258,7 @@ export class AudioCapturer {
       console.log(
         `audioCapturer stop ${this.sampleCount}/${this.bitCount}/${this.getDataCount}`,
         JSON.stringify(this.frameTime),
-        TAG
+        TAG,
       )
     this.onStop(this.allAudioData)
   }

@@ -25,7 +25,6 @@
       "webRoot": "${workspaceFolder}/src/renderer",
       "timeout": 60000,
       "internalConsoleOptions": "openOnSessionStart",
-      "disableNetworkCache": true,
       "sourceMaps": true,
       "resolveSourceMapLocations": ["${webRoot}/**", "!**/node_modules/**"],
       "outFiles": ["${webRoot}/**/*.(m|c|)js", "!**/node_modules/**"],

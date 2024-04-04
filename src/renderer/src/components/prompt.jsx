@@ -1,22 +1,48 @@
-export const Prompt = ({ handleStart, handleRegenerate, isRecording, connectingAudioServer }) => {
+import { useEffect, useState } from 'react'
+import { cn } from '../utils'
+import { ServerState } from '@utils/constant'
+import { Button } from '@components/ui/button'
+
+export const Prompt = ({ start, reGenerate, serverState }) => {
+  const [generateButtonProps, setGenerateButtonProps] = useState(ServerState.Init.generate)
+  const [actionButtonProps, setActionButtonProps] = useState(ServerState.Init.action)
+
+  useEffect(() => {
+    if (serverState) {
+      const { generate, action } = serverState
+      setGenerateButtonProps(generate)
+      setActionButtonProps(action)
+    }
+  }, [serverState])
+
   return (
-    <div className="inline-flex w-[calc(75vw-1rem)] max-w-[calc(100vw-300px-1rem)] fixed bottom-2">
-      <button
-        disabled={connectingAudioServer}
-        onClick={handleRegenerate}
+    <div className="inline-flex w-[calc(75vw-1rem)] max-w-[calc(100vw-300px-1rem)] fixed bottom-2 px-2">
+      <Button
+        disabled={generateButtonProps.disabled}
+        onClick={reGenerate}
         type="button"
-        className=" text-white bg-gray-800 font-medium rounded-lg text-sm px-5 py-2.5 me-1 w-1/2 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300 "
+        className={cn(
+          'transition-[width,background-color,display] hidden text-white text-sm tracking-wider font-medium rounded-lg px-5 py-2.5 me-1  focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:',
+          generateButtonProps.className,
+        )}
       >
-        {connectingAudioServer ? '正在连接或正在识别' : '重新生成'}
-      </button>
-      <button
-        disabled={connectingAudioServer}
-        onClick={handleStart}
+        {generateButtonProps.children}
+        {generateButtonProps.icon && (
+          <generateButtonProps.icon className={cn('w-4 ml-1', generateButtonProps.iconAnimation)} />
+        )}
+      </Button>
+      <Button
+        disabled={actionButtonProps.disabled}
+        onClick={start}
         type="button"
-        className="text-white bg-gray-800 font-medium rounded-lg text-sm px-5 py-2.5 ms-1 w-1/2 hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-300  disabled:hover:bg-gray-800"
+        className={cn(
+          'transition-[width,background-color] absolute right-0 top-[-2.5rem] text-white text-sm tracking-wider bg-zinc-500 hover:bg-gray-700/50 rounded-lg  px-5 py-2.5 ms-1 w-full  focus:outline-none focus:ring-2 focus:ring-gray-300',
+          actionButtonProps.className,
+        )}
       >
-        {connectingAudioServer ? '请稍等' : isRecording ? '结束' : '开始'}
-      </button>
+        {/* {actionButtonProps.children} */}
+        {actionButtonProps.icon && <actionButtonProps.icon className="w-5 mr-1" />}
+      </Button>
     </div>
   )
 }
