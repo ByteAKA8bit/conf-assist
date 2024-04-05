@@ -3,7 +3,7 @@
 import { Ear, Frown, Loader, Mic, Power, RotateCw, ScreenShareOff } from 'lucide-react'
 
 // 第一位 状态 1：连接中 2：已成功 3：客户端主动断开 4：客户端错误 5：服务器错误 -1为初始状态
-export const ServerState = {
+export const ServerStateMap = {
   Init: {
     stateCode: -1010,
     generate: {
@@ -26,6 +26,7 @@ export const ServerState = {
       className: 'bg-orange-300 hover:bg-orange-300 flex w-4/5',
       disabled: true,
       icon: Loader,
+      iconAnimation: 'animate-spin',
     },
     action: {
       children: '停止连接',
@@ -146,13 +147,15 @@ export const ServerState = {
   },
 }
 
+// 使用 cloudflare workers 反向代理
+export const CorsProxyBaseUrl = import.meta.env.VITE_CLOUDFLARE_CORS_PROXY_ADDRESS
+
 export const ModelMap = {
   Gemini: {
     id: 'gemini',
     name: '谷歌双子座',
-    baseUrl:
-      'https://cors-worker.byteaka8bit.workers.dev/v1beta/models/gemini-pro:streamGenerateContent',
-    pathName: `alt=sse&key=${import.meta.env.VITE_GOOGLE_AI_STUIDO_KEY}`,
+    hostname: 'generativelanguage.googleapis.com',
+    pathName: `/v1beta/models/gemini-pro:streamGenerateContent?alt=sse&key=${import.meta.env.VITE_GOOGLE_AI_STUIDO_KEY}`,
     headers: [{ key: 'Cache-Control', value: 'no-cache' }],
     createBody: (question = '介绍一下你自己') =>
       JSON.stringify({
@@ -171,9 +174,8 @@ export const ModelMap = {
   Aliyun: {
     id: 'alibaba',
     name: '阿里通义千问',
-    baseUrl:
-      'https://cors-worker.byteaka8bit.workers.dev/api/v1/services/aigc/text-generation/generation',
-    pathName: ``,
+    hostname: 'dashscope.aliyuncs.com',
+    pathName: `/api/v1/services/aigc/text-generation/generation?`,
     headers: [
       { key: 'Accept', value: 'text/event-stream' },
       { key: 'Authorization', value: `Bearer ${import.meta.env.VITE_ALIYUN_AI_KEY}` },
@@ -194,11 +196,10 @@ export const ModelMap = {
   Baidu: {
     id: 'baidu',
     name: '百度文心一言',
-    baseUrl:
-      'https://cors-worker.byteaka8bit.workers.dev/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions',
-    pathName: `access_token=${localStorage.baiduAccessToken}`,
+    hostname: 'aip.baidubce.com',
+    pathName: `/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions?access_token=${localStorage.baiduAccessToken}`,
     headers: [],
-    accessTokenUrl: 'https://cors-worker.byteaka8bit.workers.dev/oauth/2.0/token',
+    accessTokenPathName: `/oauth/2.0/token?grant_type=client_credentials&client_id=${import.meta.env.VITE_BAIDU_AI_API_KEY}&client_secret=${import.meta.env.VITE_BAIDU_AI_SECRET_KEY}`,
     createBody: (question = '介绍一下你自己') =>
       JSON.stringify({
         messages: [

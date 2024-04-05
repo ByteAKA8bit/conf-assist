@@ -19,7 +19,7 @@ import {
   audioGetSource,
 } from '@utils'
 import { AudioCapturer } from '@utils/audioCapturer'
-import { ServerState as ServerStateMap, ModelMap } from '@utils/constant'
+import { ServerStateMap, ModelMap, CorsProxyBaseUrl } from '@utils/constant'
 import { Layout, Sidebar, Content, Prompt } from '@components'
 import { ForwardQuestionList } from '@components/question-list'
 import { Topbar } from '@components/topbar'
@@ -76,11 +76,10 @@ function App() {
       redirect: 'follow',
     }
 
+    const url = `${CorsProxyBaseUrl}${ModelMap.Baidu.accessTokenPathName}&hostname=${ModelMap.Baidu.hostname}`
+
     try {
-      const response = await fetch(
-        `${ModelMap.Baidu.accessTokenUrl}?grant_type=client_credentials&client_id=${import.meta.env.VITE_BAIDU_AI_API_KEY}&client_secret=${import.meta.env.VITE_BAIDU_AI_SECRET_KEY}`,
-        requestOptions,
-      )
+      const response = await fetch(url, requestOptions)
       const result = await response.json()
       localStorage.baiduAccessToken = result.access_token
       localStorage.baiduAccessTokenExpires = timestamp + result.expires_in * 1000
@@ -130,7 +129,7 @@ function App() {
       redirect: 'follow',
     }
 
-    const url = `${currentModelRef.current.baseUrl}?${currentModelRef.current.pathName}`
+    const url = `${CorsProxyBaseUrl}${currentModelRef.current.pathName}&hostname=${currentModelRef.current.hostname}`
 
     try {
       const response = await fetch(url, requestOptions)

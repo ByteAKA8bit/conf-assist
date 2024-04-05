@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { cn } from '../utils'
-import { ServerState } from '@utils/constant'
+import { ServerStateMap } from '@utils/constant'
 import { Button } from '@components/ui/button'
 
 export const Prompt = ({ start, reGenerate, serverState }) => {
-  const [generateButtonProps, setGenerateButtonProps] = useState(ServerState.Init.generate)
-  const [actionButtonProps, setActionButtonProps] = useState(ServerState.Init.action)
+  const [generateButtonProps, setGenerateButtonProps] = useState(ServerStateMap.Init.generate)
+  const [actionButtonProps, setActionButtonProps] = useState(ServerStateMap.Init.action)
 
   useEffect(() => {
     if (serverState) {
