@@ -1,5 +1,5 @@
-import { forwardRef } from 'react';
-import { cn } from '@utils';
+import { forwardRef } from 'react'
+import { cn } from '@utils'
 
 export const QuestionList = ({ list, newQuestion, selected, onSelect }, divRef) => {
   return (
@@ -10,18 +10,18 @@ export const QuestionList = ({ list, newQuestion, selected, onSelect }, divRef) 
           return (
             <Question
               onClick={() => {
-                onSelect(index);
+                onSelect(index)
               }}
               className={index === selected && !newQuestion && 'bg-zinc-800'}
               key={question.timestamp}
               question={question}
             />
-          );
+          )
         })
         .reverse()}
     </div>
-  );
-};
+  )
+}
 
 const Question = ({ question, className, onClick }) => {
   return (
@@ -31,7 +31,7 @@ const Question = ({ question, className, onClick }) => {
     >
       {question.question}
     </div>
-  );
-};
+  )
+}
 
-export const ForwardQuestionList = forwardRef(QuestionList);
+export const ForwardQuestionList = forwardRef(QuestionList)

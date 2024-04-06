@@ -8,7 +8,7 @@ const api = {
   mainFetch: (...args) => {
     return ipcRenderer.invoke('fetch', ...args)
   },
-  audioGetSource: (...args) => ipcRenderer.invoke('audio:source', ...args)
+  audioGetSource: (...args) => ipcRenderer.invoke('audio:source', ...args),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
@@ -20,7 +20,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('electron', {
       close: () => ipcRenderer.send('close'),
       minimize: () => ipcRenderer.send('minimize'),
-      maxmize: () => ipcRenderer.send('maxmize')
+      maxmize: () => ipcRenderer.send('maxmize'),
     })
     contextBridge.exposeInMainWorld('api', api)
     contextBridge.exposeInMainWorld('localEnv', import.meta.env)
