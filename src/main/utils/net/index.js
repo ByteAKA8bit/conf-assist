@@ -1,4 +1,4 @@
-const { net } = require('electron')
+import { net } from 'electron'
 
 /**
  * http请求

@@ -1,18 +1,18 @@
 // 首先维护一个ws连接池，对所有ws连接做统一管理
 // 每个连接都需要指定key
-const WebSocket = require('ws')
+import WebSocket from 'ws'
 const socketList = []
 
 /**
  * 创建WrbSocket连接
  * @param {string} url url
- * @param {() => void} onConnected 创建成功回调
- * @param {() => void} onReceived 接收到消息的回调
+ * @param {() => void} onOpen 创建成功回调
+ * @param {() => void} onMessage 接收到消息的回调
  * @param {() => void} onClosed 连接关闭的回调
  * @param {() => void} onError 连接错误回调
  * @returns
  */
-export function createWebSocket(key, url, onConnected, onReceived, onClosed, onError) {
+export function createWebSocket(key, url, onOpen, onMessage, onClosed, onError) {
   // 检查连接池中是否有当前url的连接,没有则创建连接
   if (getWebSocket(key)) {
     return
@@ -23,27 +23,27 @@ export function createWebSocket(key, url, onConnected, onReceived, onClosed, onE
     if (event.target.readyState === event.target.OPEN) {
       socketList.push({ key, socket })
       console.log('连接', url, '成功')
-      onConnected()
+      onOpen(key)
     }
   }
   // 连接在接收到消息时，将消息用key标识，封装一层后返回
   socket.onmessage = (event) => {
     const data = event.data
-    onReceived({ key, originData: data })
+    onMessage({ key, originData: data })
   }
   // 连接关闭后在socketList中删除该连接
   socket.onclose = () => {
     const index = socketList.findIndex((item) => item.key === key)
     if (typeof index === 'number') {
       socketList.splice(index, 1)
-      onClosed()
+      onClosed(key)
     }
   }
   socket.onerror = () => {
     const index = socketList.findIndex((item) => item.key === key)
     if (typeof index === 'number') {
       socketList.splice(index, 1)
-      onError()
+      onError(key)
     }
   }
 }

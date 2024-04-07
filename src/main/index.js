@@ -1,15 +1,15 @@
-import { app, shell, BrowserWindow, ipcMain, desktopCapturer } from 'electron'
+import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
-import { closeWebSocket, createWebSocket, getWebSocket } from './socket'
-import { requestMediaAccess } from './requestMediaAccess'
-import { runWorker } from './workers'
-import { fetchRequest } from './net'
+import icon from '@resources/icon.png?asset'
+import { runWorker } from '@main/utils/workers'
+import registerIPC from '@main/utils/ipc'
+
+let mainWindow = null
 
 function createWindow() {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
@@ -88,6 +88,7 @@ app.whenReady().then(() => {
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    mainWindow = null
     app.quit()
   }
 })
@@ -100,83 +101,4 @@ const testWorker = async () => {
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
 
-ipcMain.handle('fetch', async (event, url, options, body) => {
-  const result = await fetchRequest(url, options, body)
-  return result
-})
-
-ipcMain.handle('audio:source', async (event, capturerType, appName) => {
-  let source = null
-  if (capturerType === 'app') {
-    const sources = await desktopCapturer.getSources({
-      types: ['window'],
-    })
-    source = sources.find((source) => source.name === appName)
-  }
-  if (capturerType === 'screen') {
-    source = await desktopCapturer.getSources({
-      types: ['screen'],
-    })[0]
-  }
-  if (capturerType === 'microphone') {
-    source = capturerType
-  }
-  return source
-})
-
-ipcMain.handle('request-media-access', (event, args) => {
-  return requestMediaAccess(args)
-})
-
-ipcMain.on('ws:create', (event, key, url) => {
-  createWebSocket(
-    key,
-    url,
-    () => {
-      // 广播连接成功
-      BrowserWindow.getAllWindows().map((window) => {
-        window.webContents.send('ws:created', {
-          key,
-          code: 200,
-          message: 'connection success',
-        })
-      })
-    },
-    (message) => {
-      // 广播接收到ws的消息
-      BrowserWindow.getAllWindows().map((window) => {
-        window.webContents.send('ws:received', message)
-      })
-    },
-    () => {
-      // 广播连接关闭
-      BrowserWindow.getAllWindows().map((window) => {
-        window.webContents.send('ws:closed', { key })
-      })
-    },
-    () => {
-      // 广播连接错误
-      BrowserWindow.getAllWindows().map((window) => {
-        window.webContents.send('ws:error', { key })
-      })
-    },
-  )
-})
-
-ipcMain.on('ws:send', (event, key, message) => {
-  const socket = getWebSocket(key)
-  if (socket) {
-    if (socket.readyState !== 1) {
-      setTimeout(() => {
-        if (!socket || socket.readyState !== 1) {
-          this.socket.send(message)
-        }
-      }, 40)
-    }
-    socket.send(message)
-  }
-})
-
-ipcMain.on('ws:close', (event, key) => {
-  closeWebSocket(key)
-})
+registerIPC()

@@ -5,10 +5,8 @@ import { wsCollection } from './websocket'
 const api = {
   ...wsCollection,
   requestMediaAccess: (args) => ipcRenderer.invoke('request-media-access', args),
-  mainFetch: (...args) => {
-    return ipcRenderer.invoke('fetch', ...args)
-  },
   audioGetSource: (...args) => ipcRenderer.invoke('audio:source', ...args),
+  openExternal: (...args) => ipcRenderer.send('open-external', ...args),
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
