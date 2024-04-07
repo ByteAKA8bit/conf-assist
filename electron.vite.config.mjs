@@ -12,13 +12,18 @@ export default defineConfig(({ mode }) => {
     main: {
       plugins: [externalizeDepsPlugin()],
       resolve: {
-        alias: {},
+        alias: {
+          '@main': resolve('src/main'),
+          '@resources': resolve('resources'),
+        },
       },
     },
     preload: {
       plugins: [externalizeDepsPlugin()],
       resolve: {
-        alias: {},
+        alias: {
+          '@preload': resolve('src/preload'),
+        },
       },
     },
     renderer: {
@@ -26,9 +31,11 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': resolve('src/renderer/src'),
+          '@renderer': resolve('src/renderer/src'),
           '@assets': resolve('src/renderer/src/assets'),
           '@components': resolve('src/renderer/src/components'),
           '@hooks': resolve('src/renderer/src/hooks'),
+          '@pages': resolve('src/renderer/src/pages'),
           '@provider': resolve('src/renderer/src/provider'),
           '@store': resolve('src/renderer/src/store'),
           '@utils': resolve('src/renderer/src/utils'),

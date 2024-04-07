@@ -2,6 +2,10 @@
 
 import { Ear, Frown, Loader, Mic, Power, RotateCw, ScreenShareOff } from 'lucide-react'
 
+// 使用 cloudflare workers 反向代理
+// export const CorsProxyBaseUrl = 'http://localhost:8787'
+export const CorsProxyBaseUrl = import.meta.env.VITE_CLOUDFLARE_CORS_PROXY_ADDRESS
+
 // 第一位 状态 1：连接中 2：已成功 3：客户端主动断开 4：客户端错误 5：服务器错误 -1为初始状态
 export const ServerStateMap = {
   Init: {
@@ -39,7 +43,7 @@ export const ServerStateMap = {
     stateCode: 2014,
     generate: {
       children: '请开始提问',
-      className: 'bg-green-400 hover:bg-green-400 flex w-4/5',
+      className: 'bg-green-500 hover:bg-green-500 flex w-4/5',
       disabled: true,
       icon: Ear,
     },
@@ -85,16 +89,16 @@ export const ServerStateMap = {
   AIGenerating: {
     stateCode: 1008,
     generate: {
-      children: '正在生成中',
-      className: 'bg-orange-300 hover:bg-orange-300 flex w-4/5',
-      disabled: true,
+      children: '生成中 点击停止生成',
+      className: 'bg-orange-500 hover:bg-orange-600 flex w-4/5',
+      disabled: false,
       icon: Loader,
       iconAnimation: 'animate-spin ',
     },
     action: {
       children: '结束',
-      className: 'bg-rose-300 hover:bg-rose-300 w-1/5 absolute right-0 top-0',
-      disabled: true,
+      className: 'bg-rose-500 hover:bg-rose-600 w-1/5 absolute right-0 top-0',
+      disabled: false,
       icon: Power,
     },
   },
@@ -147,9 +151,6 @@ export const ServerStateMap = {
   },
 }
 
-// 使用 cloudflare workers 反向代理
-export const CorsProxyBaseUrl = import.meta.env.VITE_CLOUDFLARE_CORS_PROXY_ADDRESS
-
 export const ModelMap = {
   Gemini: {
     id: 'gemini',
@@ -163,7 +164,7 @@ export const ModelMap = {
           {
             parts: [
               {
-                text: question,
+                text: localStorage.promptPrefix ? localStorage.promptPrefix + question : question,
               },
             ],
           },
@@ -184,7 +185,7 @@ export const ModelMap = {
       JSON.stringify({
         model: 'qwen-turbo',
         input: {
-          prompt: question,
+          prompt: localStorage.promptPrefix ? localStorage.promptPrefix + question : question,
         },
         parameters: {
           enable_search: true,

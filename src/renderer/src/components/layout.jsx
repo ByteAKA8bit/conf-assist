@@ -25,12 +25,7 @@ export const Sidebar = ({ className, children, ...props }) => {
 
 export const Content = forwardRef(({ className, children, ...props }, ref) => {
   return (
-    <div
-      ref={ref}
-      className={cn('flex-1 overflow-auto', className)}
-      {...props}
-      // style={{ WebkitAppRegion: 'drag' }}
-    >
+    <div ref={ref} className={cn('flex-1 overflow-auto', className)} {...props}>
       {children}
     </div>
   )
