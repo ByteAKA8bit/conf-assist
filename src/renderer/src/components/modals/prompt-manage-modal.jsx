@@ -40,7 +40,8 @@ export const PromptManageModal = () => {
     toast({
       title: '保存成功',
       duration: 1000,
-      className: 'bg-green-400',
+      className:
+        'bg-green-400/90 fixed top-10 right-4 w-[25vw] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
     })
   }
 
