@@ -249,6 +249,7 @@ function MainWindow() {
           audioCapturerRef.current.stop()
         }
         canSendMessage.current = false
+        serverStateDispatch(ServerStateMap.AudioErrorReTry)
         setTimeout(() => {
           connectAudioRecongnizorServer()
         }, 500)
@@ -370,7 +371,6 @@ function MainWindow() {
         if (!serverStateRef.current.reTry) {
           serverStateDispatch(ServerStateMap.Init)
         }
-        // 可重试不更改状态
       }
     })
     wsErrorRegister((res) => {
