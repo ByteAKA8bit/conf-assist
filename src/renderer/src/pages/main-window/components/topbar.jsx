@@ -92,7 +92,7 @@ export const Topbar = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent className="dark:bg-zinc-600 min-w-24" align="start">
             <DropdownMenuItem>语音识别热词</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onOpen('promptManage')}>问题前、后缀</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onOpen('promptManage')}>问题前缀</DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>主题设置</DropdownMenuSubTrigger>
               <DropdownMenuPortal>
