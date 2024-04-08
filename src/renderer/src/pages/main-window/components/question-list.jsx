@@ -7,13 +7,15 @@ export const QuestionList = ({ list, newQuestion, selected, onSelect }) => {
         <Question className="bg-zinc-200 dark:bg-zinc-800" question={{ question: newQuestion }} />
       )}
       {list
-        .map((question, index) => {
+        .map((question) => {
           return (
             <Question
               onClick={() => {
-                onSelect(index)
+                onSelect(question.timestamp)
               }}
-              className={index === selected && !newQuestion && 'bg-zinc-200 dark:bg-zinc-800'}
+              className={
+                question.timestamp === selected && !newQuestion && 'bg-zinc-200 dark:bg-zinc-800'
+              }
               key={question.timestamp}
               question={question}
             />

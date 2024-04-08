@@ -1,7 +1,7 @@
 import queryString from 'query-string'
 import { v4 as uuidv4 } from 'uuid'
 import CryptoJS from 'crypto-js'
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useReducer, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -50,7 +50,7 @@ function MainWindow() {
   const newQuestionRef = useRef('')
   const [newQuestion, setNewQuestion] = useState('')
 
-  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(0)
+  const [selectedQuestionID, setSelectedQuestionID] = useState(0)
 
   const canSendMessage = useRef(false)
 
@@ -108,6 +108,18 @@ function MainWindow() {
     if (!question) {
       return
     }
+
+    setNewQuestion(() => '')
+    newQuestionRef.current = ''
+
+    if (!regenerate) {
+      questionListDispatch([
+        ...questionListRef.current.filter((item) => item.timestamp !== timestamp),
+        { timestamp, question, answer: '' },
+      ])
+      setSelectedQuestionID(() => timestamp)
+    }
+
     serverStateDispatch(ServerStateMap.AIGenerating)
 
     if (currentModelRef.current.id === ModelMap.Baidu.id) {
@@ -154,27 +166,25 @@ function MainWindow() {
           if (line.includes('data:')) {
             const data = JSON.parse(line.replace(test, ''))
             answerSnippet += getText(data)
-
-            // 清空临时问题
-            newQuestionRef.current = ''
-            setNewQuestion('')
             // 流式更新问题答案
-            const prev = questionListRef.current
-            if (regenerate) {
-              const questionItem = prev[selectedQuestionIndex]
-              questionItem.answer = answerSnippet
-              const before = prev.slice(0, selectedQuestionIndex)
-              const after = prev.slice(selectedQuestionIndex + 1)
-              questionListDispatch([...before, questionItem, ...after])
+            const currentIndex = questionListRef.current.findIndex(
+              (item) => item.timestamp === timestamp,
+            )
+            console.log(questionListRef.current, currentIndex)
+            if (currentIndex === -1) {
+              return
             }
-            questionListDispatch([
-              ...prev.filter((item) => item.timestamp !== timestamp),
-              { timestamp, question, answer: answerSnippet },
-            ])
+            const questionItem = questionListRef.current[currentIndex]
+            console.log(questionItem)
+            questionItem.answer = answerSnippet
+            const before = questionListRef.current.slice(0, currentIndex)
+            const after = questionListRef.current.slice(currentIndex + 1)
+            questionListDispatch([...before, questionItem, ...after])
           }
         })
       }
     } catch (error) {
+      console.error(error)
       serverStateDispatch(ServerStateMap.AIError)
       return
     }
@@ -225,7 +235,6 @@ function MainWindow() {
     switch (data.code) {
       case 0:
         if (data.message_id === undefined) {
-          // 握手成功消息，开发发送消息
           canSendMessage.current = true
           serverStateDispatch(ServerStateMap.AudioConnectSuccess)
         } else {
@@ -250,6 +259,7 @@ function MainWindow() {
         }
         canSendMessage.current = false
         serverStateDispatch(ServerStateMap.AudioErrorReTry)
+        wsClose(WebSocketKey)
         setTimeout(() => {
           connectAudioRecongnizorServer()
         }, 500)
@@ -358,6 +368,7 @@ function MainWindow() {
             break
           case 'xf':
             handleXFASRMessage(data)
+            break
         }
       }
     })
@@ -444,31 +455,25 @@ function MainWindow() {
         fetchAnswerController.abort()
         serverStateDispatch(ServerStateMap.AIComplete)
         return
+      case ServerStateMap.AIComplete:
       case ServerStateMap.AIFailed:
-        const selectedQuestion = questionList[selectedQuestionIndex]
+        const selectedQuestion = questionList.filter(
+          (item) => item.timestamp === selectedQuestionID,
+        )?.[0]
+        console.log(selectedQuestion)
         if (selectedQuestion) {
           fetchAnswer(selectedQuestion.timestamp, selectedQuestion.question, true)
-        } else {
-          if (newQuestionRef.current !== '') {
-            fetchAnswer(new Date().getTime(), newQuestionRef.current)
-          }
         }
         break
     }
   }
 
-  const handleQuestionClick = (index) => {
-    setSelectedQuestionIndex(index)
+  const handleQuestionClick = (id) => {
+    setSelectedQuestionID(id)
     if (serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode) {
       serverStateDispatch(ServerStateMap.AIComplete)
-    } else {
-      serverStateDispatch(serverStateRef.current)
     }
   }
-
-  useEffect(() => {
-    setSelectedQuestionIndex(questionList.length - 1)
-  }, [questionList.length])
 
   const coedBlock = {
     code({ children, className, ...rest }) {
@@ -493,7 +498,7 @@ function MainWindow() {
           <QuestionList
             list={questionList}
             newQuestion={newQuestion}
-            selected={selectedQuestionIndex}
+            selected={selectedQuestionID}
             onSelect={handleQuestionClick}
           />
         </Sidebar>
@@ -503,11 +508,8 @@ function MainWindow() {
             remarkPlugins={[remarkGfm]}
             components={coedBlock}
           >
-            {questionList[selectedQuestionIndex]?.answer
-              ? questionList[selectedQuestionIndex].answer
-              : questionList[selectedQuestionIndex] === undefined
-                ? ''
-                : '等待生成答案'}
+            {questionList.filter((item) => item.timestamp === selectedQuestionID)?.[0]?.answer ||
+              ''}
           </Markdown>
           <Prompt start={handleStart} reGenerate={handleRegenerate} serverState={serverState} />
         </Content>

@@ -42,7 +42,7 @@ export const Topbar = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7"
+              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7 hidden"
             >
               历史记录
             </Button>
@@ -91,7 +91,7 @@ export const Topbar = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="dark:bg-zinc-600 min-w-24" align="start">
-            <DropdownMenuItem>语音识别热词</DropdownMenuItem>
+            <DropdownMenuItem className="hidden">语音识别热词</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onOpen('promptManage')}>问题前缀</DropdownMenuItem>
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>主题设置</DropdownMenuSubTrigger>
@@ -119,7 +119,7 @@ export const Topbar = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7"
+              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7 hidden"
             >
               激活
             </Button>
@@ -134,7 +134,7 @@ export const Topbar = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7"
+              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7 hidden"
             >
               帮助
             </Button>
