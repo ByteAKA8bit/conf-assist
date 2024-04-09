@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Moon, Sun, SunMoon } from 'lucide-react'
-
 import { LuXCircle, LuMinusCircle, LuMaximize, LuMinimize2 } from 'react-icons/lu'
 
 import { Button } from '@components/ui/button'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
@@ -19,9 +19,15 @@ import {
 import { openExternal } from '@/utils'
 import { useTheme } from '@/provider/theme-provider'
 import { useModal } from '@/hooks/use-modal'
+import { useSpeechSupplier } from '@/hooks/use-speech-suplier'
+import { useModel } from '@/hooks/use-model'
+import { ModelMap } from '@/utils/constant'
+import { toast } from '@/components/ui/use-toast'
 
 export const Topbar = () => {
   const [maxmized, setMaxmized] = useState(false)
+  const { supplier, setSupplier } = useSpeechSupplier()
+  const { model, setModel } = useModel()
 
   const { setTheme } = useTheme()
   const { onOpen } = useModal()
@@ -94,7 +100,91 @@ export const Topbar = () => {
             <DropdownMenuItem className="hidden">语音识别热词</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onOpen('promptManage')}>问题前缀</DropdownMenuItem>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger>主题设置</DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger>语音识别引擎</DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
+                  <DropdownMenuCheckboxItem
+                    checked={supplier === 'tencent'}
+                    onCheckedChange={() => {
+                      toast({
+                        description: `语音引擎切换为：腾讯语音识别`,
+                        duration: 1500,
+                        className:
+                          'bg-green-400/90 fixed top-10 right-4 w-[16rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+                      })
+                      setSupplier('tencent')
+                    }}
+                  >
+                    腾讯
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={supplier === 'xunfei'}
+                    onCheckedChange={() => {
+                      toast({
+                        title: `语音引擎切换为：讯飞语音识别`,
+                        duration: 1500,
+                        className:
+                          'bg-green-400/90 fixed top-10 right-4 w-[16rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+                      })
+                      setSupplier('xunfei')
+                    }}
+                  >
+                    讯飞
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>文本生成模型</DropdownMenuSubTrigger>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
+                  <DropdownMenuCheckboxItem
+                    checked={model === ModelMap.Gemini.id}
+                    onCheckedChange={() => {
+                      toast({
+                        title: `模型切换为：${ModelMap.Gemini.name}`,
+                        duration: 1500,
+                        className:
+                          'bg-green-400/90 fixed top-10 right-4 w-[14rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+                      })
+                      setModel(ModelMap.Gemini.id)
+                    }}
+                  >
+                    {ModelMap.Gemini.name}
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={model === ModelMap.Aliyun.id}
+                    onCheckedChange={() => {
+                      toast({
+                        title: `模型切换为：${ModelMap.Aliyun.name}`,
+                        duration: 1500,
+                        className:
+                          'bg-green-400/90 fixed top-10 right-4 w-[14rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+                      })
+                      setModel(ModelMap.Aliyun.id)
+                    }}
+                  >
+                    {ModelMap.Aliyun.name}
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={model === ModelMap.Baidu.id}
+                    onCheckedChange={() => {
+                      toast({
+                        title: `模型切换为：${ModelMap.Baidu.name}`,
+                        duration: 1500,
+                        className:
+                          'bg-green-400/90 fixed top-10 right-4 w-[14rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+                      })
+                      setModel(ModelMap.Baidu.id)
+                    }}
+                  >
+                    {ModelMap.Baidu.name}
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger>颜色模式</DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
                   <DropdownMenuItem onClick={() => setTheme('light')}>
@@ -119,14 +209,14 @@ export const Topbar = () => {
             <Button
               variant="ghost"
               size="sm"
-              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7 hidden"
+              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7"
             >
               激活
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="dark:bg-zinc-600 min-w-24" align="start">
-            <DropdownMenuItem>输入激活码</DropdownMenuItem>
-            <DropdownMenuItem>购买激活码</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onOpen('active')}>激活</DropdownMenuItem>
+            <DropdownMenuItem>获取激活码</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>

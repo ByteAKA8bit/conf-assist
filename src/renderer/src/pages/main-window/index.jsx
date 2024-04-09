@@ -1,7 +1,7 @@
 import queryString from 'query-string'
 import { v4 as uuidv4 } from 'uuid'
 import CryptoJS from 'crypto-js'
-import { useReducer, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -10,10 +10,10 @@ import {
   wsCreate,
   wsSend,
   wsClose,
-  wsCreatedRegister,
-  wsReceivedRegister,
-  wsClosedRegister,
-  wsErrorRegister,
+  wsOnOpenRegister,
+  wsOnMessageRegister,
+  wsOnCloseRegister,
+  wsOnErrorRegister,
   generateWebSocketID,
   requestMediaAccess,
   audioGetSource,
@@ -24,10 +24,13 @@ import { Layout, Sidebar, Content } from '@components/layout'
 import { Prompt } from '@/pages/main-window/components/prompt'
 import { QuestionList } from '@/pages/main-window/components/question-list'
 import { Topbar } from '@/pages/main-window/components/topbar'
+import { useSpeechSupplier } from '@/hooks/use-speech-suplier'
+import { useModel } from '@/hooks/use-model'
 
 function MainWindow() {
   const WebSocketKey = generateWebSocketID()
-
+  const supplier = useSpeechSupplier((state) => state.supplier)
+  const model = useModel((state) => state.model)
   const fetchAnswerController = new AbortController()
 
   function serverStateReducer(state, action) {
@@ -37,7 +40,7 @@ function MainWindow() {
   const serverStateRef = useRef(ServerStateMap.Init)
   const [serverState, serverStateDispatch] = useReducer(serverStateReducer, ServerStateMap.Init)
 
-  const currentModelRef = useRef(ModelMap.Aliyun)
+  const currentModelRef = useRef()
 
   function questionListReducer(state, action) {
     // 后续从indexedDB增删改查
@@ -52,7 +55,7 @@ function MainWindow() {
 
   const [selectedQuestionID, setSelectedQuestionID] = useState(0)
 
-  const canSendMessage = useRef(false)
+  const canSendMessageRef = useRef(false)
 
   const divRef = useRef()
   const ASRTimeout = useRef(0)
@@ -170,12 +173,10 @@ function MainWindow() {
             const currentIndex = questionListRef.current.findIndex(
               (item) => item.timestamp === timestamp,
             )
-            console.log(questionListRef.current, currentIndex)
             if (currentIndex === -1) {
               return
             }
             const questionItem = questionListRef.current[currentIndex]
-            console.log(questionItem)
             questionItem.answer = answerSnippet
             const before = questionListRef.current.slice(0, currentIndex)
             const after = questionListRef.current.slice(currentIndex + 1)
@@ -194,10 +195,10 @@ function MainWindow() {
     }
   }
 
-  const generateWSURL = (type) => {
+  const generateWSURL = () => {
     const time = new Date().getTime()
     const timestamp = Math.round(time / 1000)
-    if (type === 'tencent') {
+    if (supplier === 'tencent') {
       const baseURL = `asr.cloud.tencent.com/asr/v2/${import.meta.env.VITE_TENCENT_APPID}?`
       const params = {
         secretid: import.meta.env.VITE_TENCENT_SECRETID,
@@ -235,7 +236,7 @@ function MainWindow() {
     switch (data.code) {
       case 0:
         if (data.message_id === undefined) {
-          canSendMessage.current = true
+          canSendMessageRef.current = true
           serverStateDispatch(ServerStateMap.AudioConnectSuccess)
         } else {
           // 接收到语音转文字消息
@@ -257,7 +258,7 @@ function MainWindow() {
         if (audioCapturerRef.current) {
           audioCapturerRef.current.stop()
         }
-        canSendMessage.current = false
+        canSendMessageRef.current = false
         serverStateDispatch(ServerStateMap.AudioErrorReTry)
         wsClose(WebSocketKey)
         setTimeout(() => {
@@ -269,7 +270,7 @@ function MainWindow() {
         if (audioCapturerRef.current) {
           audioCapturerRef.current.stop()
         }
-        canSendMessage.current = false
+        canSendMessageRef.current = false
         serverStateDispatch(ServerStateMap.AudioErrorReTry)
         break
       default:
@@ -281,7 +282,7 @@ function MainWindow() {
   const handleXFASRMessage = (data) => {
     switch (data.action) {
       case 'started':
-        canSendMessage.current = true
+        canSendMessageRef.current = true
         serverStateDispatch(ServerStateMap.AudioConnectSuccess)
         break
       case 'result':
@@ -323,7 +324,7 @@ function MainWindow() {
         if (audioCapturerRef.current) {
           audioCapturerRef.current.stop()
         }
-        canSendMessage.current = false
+        canSendMessageRef.current = false
         serverStateDispatch(ServerStateMap.AudioErrorReTry)
         break
       default:
@@ -332,19 +333,20 @@ function MainWindow() {
     }
   }
 
-  const connectAudioRecongnizorServer = (type = 'tencent') => {
+  const connectAudioRecongnizorServer = () => {
     serverStateDispatch(ServerStateMap.AudioConnecting)
 
     // 记录最终请求地址
-    const wsUrl = generateWSURL(type)
+    const wsUrl = generateWSURL()
 
     // 连接语音识别服务器
     wsCreate(WebSocketKey, wsUrl)
 
-    wsCreatedRegister((res) => {
+    // 注册onOpen事件
+    wsOnOpenRegister((res) => {
       if (res.key === WebSocketKey && res.code === 200) {
         // 此时还不能发送消息
-        canSendMessage.current = false
+        canSendMessageRef.current = false
         // 开始录音
         if (!audioCapturerRef.current) {
           createAudioCapturer()
@@ -355,41 +357,43 @@ function MainWindow() {
         serverStateDispatch(ServerStateMap.AudioConnecting)
       }
     })
-    wsReceivedRegister((res) => {
+    wsOnMessageRegister((res) => {
       if (res.key === WebSocketKey) {
         const data = JSON.parse(res.originData)
         // console.log('接收到服务器消息 >> :', data)
         // 使用腾讯ASR
         // handleTencentASRMessage(data)
         // 使用讯飞ASR
-        switch (type) {
+        switch (supplier) {
           case 'tencent':
             handleTencentASRMessage(data)
             break
-          case 'xf':
+          case 'xunfei':
             handleXFASRMessage(data)
             break
+          default:
+            handleXFASRMessage(data)
         }
       }
     })
-    wsClosedRegister((res) => {
+    wsOnCloseRegister((res) => {
       if (res.key === WebSocketKey) {
         if (audioCapturerRef.current) {
           audioCapturerRef.current.stop()
         }
-        canSendMessage.current = false
+        canSendMessageRef.current = false
         // 不可重试则关闭
         if (!serverStateRef.current.reTry) {
           serverStateDispatch(ServerStateMap.Init)
         }
       }
     })
-    wsErrorRegister((res) => {
+    wsOnErrorRegister((res) => {
       if (res.key === WebSocketKey) {
         if (audioCapturerRef.current) {
           audioCapturerRef.current.stop()
         }
-        canSendMessage.current = false
+        canSendMessageRef.current = false
         serverStateDispatch(ServerStateMap.AudioError)
       }
     })
@@ -409,15 +413,15 @@ function MainWindow() {
     audioCapturerRef.current = new AudioCapturer(
       source,
       (data) => {
-        if (canSendMessage.current && data) {
+        if (canSendMessageRef.current && data) {
           wsSend(WebSocketKey, data)
         }
       },
       () => {
-        canSendMessage.current = false
+        canSendMessageRef.current = false
       },
       () => {
-        canSendMessage.current = false
+        canSendMessageRef.current = false
       },
     )
     if (!audioCapturerRef.current) {
@@ -436,7 +440,7 @@ function MainWindow() {
       if (audioCapturerRef.current) {
         audioCapturerRef.current.stop()
       }
-      canSendMessage.current = false
+      canSendMessageRef.current = false
       newQuestionRef.current = ''
       setNewQuestion('')
       fetchAnswerController.abort()
@@ -460,7 +464,6 @@ function MainWindow() {
         const selectedQuestion = questionList.filter(
           (item) => item.timestamp === selectedQuestionID,
         )?.[0]
-        console.log(selectedQuestion)
         if (selectedQuestion) {
           fetchAnswer(selectedQuestion.timestamp, selectedQuestion.question, true)
         }
@@ -475,15 +478,43 @@ function MainWindow() {
     }
   }
 
-  const coedBlock = {
-    code({ children, className, ...rest }) {
+  useEffect(() => {
+    if (serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode) {
+      if (audioCapturerRef.current) {
+        audioCapturerRef.current.stop()
+      }
+      canSendMessageRef.current = false
+      serverStateDispatch(ServerStateMap.Init)
+      wsClose(WebSocketKey)
+      setTimeout(() => {
+        connectAudioRecongnizorServer()
+      }, 500)
+    }
+  }, [supplier])
+
+  useEffect(() => {
+    switch (model) {
+      case ModelMap.Gemini.id:
+        currentModelRef.current = ModelMap.Gemini
+        break
+      case ModelMap.Aliyun.id:
+        currentModelRef.current = ModelMap.Aliyun
+        break
+      case ModelMap.Baidu.id:
+        currentModelRef.current = ModelMap.Baidu
+        break
+    }
+  }, [model])
+
+  const customComponents = {
+    code({ children, className, ...props }) {
       const match = /language-(\w+)/.exec(className || '')
       return match ? (
-        <SyntaxHighlighter {...rest} showInlineLineNumbers language={match[1]} style={oneDark}>
+        <SyntaxHighlighter {...props} showInlineLineNumbers language={match[1]} style={oneDark}>
           {String(children).replace(/\n$/, '')}
         </SyntaxHighlighter>
       ) : (
-        <code {...rest} className={className}>
+        <code {...props} className={className}>
           {children}
         </code>
       )
@@ -506,7 +537,7 @@ function MainWindow() {
           <Markdown
             className="p-4 pb-4 mt-8 rounded flex-grow-0 h-[calc(100vh-6rem)] select-text leading-7 overflow-auto"
             remarkPlugins={[remarkGfm]}
-            components={coedBlock}
+            components={customComponents}
           >
             {questionList.filter((item) => item.timestamp === selectedQuestionID)?.[0]?.answer ||
               ''}

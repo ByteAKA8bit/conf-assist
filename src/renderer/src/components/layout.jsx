@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import { cn } from '../utils'
+import { cn } from '@utils'
 
 export const Layout = ({ className, children, ...props }) => {
   return (

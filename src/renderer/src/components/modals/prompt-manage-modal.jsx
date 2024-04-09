@@ -1,4 +1,10 @@
 import * as z from 'zod'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Form, FormControl, FormField, FormItem } from '@components/ui/form'
+import { Textarea } from '@components/ui/textarea'
+import { Button } from '@components/ui/button'
+import { useToast } from '@components/ui/use-toast'
 import { useModal } from '@/hooks/use-modal'
 import {
   Dialog,
@@ -8,12 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Form, FormControl, FormField, FormItem } from '@components/ui/form'
-import { Textarea } from '@components/ui/textarea'
-import { Button } from '@components/ui/button'
-import { useToast } from '@components/ui/use-toast'
 
 const fromScheme = z.object({
   prefix: z.string().max(120, { message: '前缀不能多于120字' }),
@@ -41,7 +41,7 @@ export const PromptManageModal = () => {
       title: '保存成功',
       duration: 1000,
       className:
-        'bg-green-400/90 fixed top-10 right-4 w-[25vw] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+        'bg-green-400/90 fixed top-10 right-4 w-1/4 text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
     })
   }
 

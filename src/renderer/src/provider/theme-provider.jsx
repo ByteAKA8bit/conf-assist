@@ -34,6 +34,24 @@ export function ThemeProvider({
     root.classList.add(theme)
   }, [theme])
 
+  useEffect(() => {
+    const root = window.document.documentElement
+
+    if (theme === 'system') {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
+        root.classList.remove('light', 'dark')
+        if (event.matches) {
+          root.classList.add('dark')
+        } else {
+          root.classList.add('light')
+        }
+      })
+    }
+    return () => {
+      window.matchMedia('(prefers-color-scheme: dark)').removeEventListener('change', null)
+    }
+  }, [])
+
   const value = {
     theme,
     setTheme: (theme) => {

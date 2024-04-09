@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { wsCollection } from './websocket'
+import { wsCollection } from '@preload/ipc/websocket'
 
 // Custom APIs for renderer
 const api = {
@@ -21,7 +21,6 @@ if (process.contextIsolated) {
       maxmize: () => ipcRenderer.send('maxmize'),
     })
     contextBridge.exposeInMainWorld('api', api)
-    contextBridge.exposeInMainWorld('localEnv', import.meta.env)
   } catch (error) {
     console.error(error)
   }

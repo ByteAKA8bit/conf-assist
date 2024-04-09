@@ -5,6 +5,7 @@ import { Ear, Frown, Loader, Mic, Power, RotateCw, ScreenShareOff } from 'lucide
 // 使用 cloudflare workers 反向代理
 // export const CorsProxyBaseUrl = 'http://localhost:8787'
 export const CorsProxyBaseUrl = import.meta.env.VITE_CLOUDFLARE_CORS_PROXY_ADDRESS
+export const ActiveBaseUrl = import.meta.env.VITE_CLOUDFLARE_ACTIVE_ADDRESS
 
 // 第一位 状态 1：连接中 2：已成功 3：客户端主动断开 4：客户端错误 5：服务器错误 -1为初始状态
 export const ServerStateMap = {
