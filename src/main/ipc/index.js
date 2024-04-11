@@ -1,11 +1,13 @@
-import { ipcMain, BrowserWindow, desktopCapturer, shell } from 'electron'
+import { ipcMain, desktopCapturer, shell } from 'electron'
 import { createWebSocket, closeWebSocket, getWebSocket } from '@main/utils/socket'
 import { requestMediaAccess } from '@main/utils/permission-access/requestMediaAccess'
+import { machineId } from 'node-machine-id'
 
-//
+let targetWindows = []
+
 function onWebSocketOpen(key) {
   // 广播连接成功
-  BrowserWindow.getAllWindows().map((window) => {
+  targetWindows.map((window) => {
     window.webContents.send('ws:created', {
       key,
       code: 200,
@@ -13,19 +15,22 @@ function onWebSocketOpen(key) {
     })
   })
 }
+
 function onWebSocketReceiveMessage(message) {
   // 广播接收到ws的消息
-  BrowserWindow.getAllWindows().map((window) => {
+  targetWindows.map((window) => {
     window.webContents.send('ws:received', message)
   })
 }
+
 function onWebSocketClose(key) {
-  BrowserWindow.getAllWindows().map((window) => {
+  targetWindows.map((window) => {
     window.webContents.send('ws:closed', { key })
   })
 }
+
 function onWebSocketError(key) {
-  BrowserWindow.getAllWindows().map((window) => {
+  targetWindows.map((window) => {
     window.webContents.send('ws:error', { key })
   })
 }
@@ -74,23 +79,18 @@ export function registerPermissionAccess() {
 }
 
 export function registerGetAuidoSource() {
-  ipcMain.handle('audio:source', async (event, capturerType, appName) => {
-    let source = null
-    if (capturerType === 'app') {
-      const sources = await desktopCapturer.getSources({
-        types: ['window'],
-      })
-      source = sources.find((source) => source.name === appName)
-    }
-    if (capturerType === 'screen') {
-      source = await desktopCapturer.getSources({
-        types: ['screen'],
-      })[0]
-    }
-    if (capturerType === 'microphone') {
-      source = capturerType
-    }
-    return source
+  ipcMain.handle('audio:source', async () => {
+    // 全部返回回去让用户选择
+    const sources = await desktopCapturer.getSources({
+      types: ['screen', 'window'],
+      thumbnailSize: { height: 256, width: 256 },
+      fetchWindowIcons: true,
+    })
+    sources.forEach((item) => {
+      item.thumbnailURL = item.thumbnail.toDataURL()
+    })
+
+    return sources
   })
 }
 
@@ -100,9 +100,34 @@ export function registerOpenExternal() {
   })
 }
 
-export default function registerIPC() {
+function getMachineID() {
+  ipcMain.handle('get:machine-id', async () => {
+    return await machineId()
+  })
+}
+
+export default function registerIPC(windows) {
+  targetWindows = windows
   registerWebSocketProxy()
   registerPermissionAccess()
   registerGetAuidoSource()
   registerOpenExternal()
+  getMachineID()
+
+  // Todo 窗口最大最小关闭控制 这里还是不精确 需要后期修正
+  ipcMain.on('close', () => {
+    targetWindows.forEach((window) => window.close())
+  })
+  ipcMain.on('minimize', () => {
+    targetWindows.forEach((window) => window.minimize())
+  })
+  ipcMain.on('maxmize', () => {
+    targetWindows.forEach((window) => {
+      if (window.isMaximized()) {
+        window.restore()
+      } else {
+        window.maximize()
+      }
+    })
+  })
 }

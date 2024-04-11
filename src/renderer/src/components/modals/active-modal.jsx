@@ -7,7 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from '@components
 import { Button } from '@components/ui/button'
 import { Input } from '@components/ui/input'
 import { ActiveBaseUrl } from '@/utils/constant'
-import { useModal } from '@/hooks/use-modal'
+import { useDialog } from '@/hooks/use-dialog'
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,7 @@ const formSchema = z.object({
 })
 
 export const ActiveModal = () => {
-  const { isOpen, onClose, type } = useModal()
+  const { isOpen, closeDialog, type } = useDialog()
 
   const isModalOpen = isOpen && type === 'active'
 
@@ -40,7 +40,6 @@ export const ActiveModal = () => {
   const onSubmit = async (values) => {
     // 记录激活码
     localStorage.activeCode = values.activeCode
-
     const controller = new AbortController()
     const timerId = setTimeout(() => controller.abort(), 3000)
     const myHeaders = new Headers()
@@ -65,8 +64,11 @@ export const ActiveModal = () => {
         throw new Error('激活失败')
       }
       localStorage.actived = result.data.actived
-      localStorage.activedID = result.data.id
+      localStorage.activeID = result.data.id
       localStorage.activeTimeleft = result.data.timeleft
+      // 试用失效
+      localStorage.freeTrialTimeleft = 0
+      localStorage.freeTrial = 'expired'
       setActived(true)
     } catch (error) {
       console.error(error)
@@ -82,12 +84,15 @@ export const ActiveModal = () => {
     const remainingSeconds = seconds % 3600
     const minutes = Math.floor(remainingSeconds / 60)
     const remainingSecondsFinal = Math.floor(remainingSeconds % 60)
+    if (hours === 0) {
+      return `${minutes}分钟${remainingSecondsFinal}秒`
+    }
     return `${hours}小时${minutes}分钟${remainingSecondsFinal}秒`
   }
 
   const handleClose = () => {
     form.reset()
-    onClose()
+    closeDialog()
   }
 
   return (
@@ -121,7 +126,13 @@ export const ActiveModal = () => {
                   </FormItem>
                 )}
               />
-              <DialogFooter>
+              <DialogFooter className="flex items-center pb-4">
+                <span className="text-zinc-400 text-xs">
+                  {localStorage.freeTrial !== 'expired'
+                    ? `免费试用时间剩余：${convertToText(localStorage.freeTrialTimeleft || 15 * 60 * 1000)}`
+                    : '免费试用已结束'}
+                </span>
+
                 <Button disabled={isLoading} type="submit">
                   激活
                 </Button>

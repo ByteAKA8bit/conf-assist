@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Moon, Sun, SunMoon } from 'lucide-react'
 import { LuXCircle, LuMinusCircle, LuMaximize, LuMinimize2 } from 'react-icons/lu'
 
@@ -18,7 +18,7 @@ import {
 
 import { openExternal } from '@/utils'
 import { useTheme } from '@/provider/theme-provider'
-import { useModal } from '@/hooks/use-modal'
+import { useDialog } from '@/hooks/use-dialog'
 import { useSpeechSupplier } from '@/hooks/use-speech-suplier'
 import { useModel } from '@/hooks/use-model'
 import { ModelMap } from '@/utils/constant'
@@ -30,7 +30,7 @@ export const Topbar = () => {
   const { model, setModel } = useModel()
 
   const { setTheme } = useTheme()
-  const { onOpen } = useModal()
+  const { openDialog } = useDialog()
 
   const closeWindow = window.electron.close
   const minimizeWindow = window.electron.minimize
@@ -38,6 +38,12 @@ export const Topbar = () => {
     setMaxmized((max) => !max)
     window.electron.maxmize()
   }
+
+  useEffect(() => {
+    if (localStorage.freeTrial === undefined) {
+      openDialog('freeTrial')
+    }
+  }, [])
 
   return (
     <div className="absolute h-10 w-full border-b-[1px] bg-white flex justify-start items-center dark:bg-zinc-700 dark:border-zinc-800/50">
@@ -98,8 +104,10 @@ export const Topbar = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent className="dark:bg-zinc-600 min-w-24" align="start">
             <DropdownMenuItem className="hidden">语音识别热词</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onOpen('promptManage')}>问题前缀</DropdownMenuItem>
-            <DropdownMenuSub>
+            <DropdownMenuItem onClick={() => openDialog('promptManage')}>
+              预设提示词
+            </DropdownMenuItem>
+            {/* <DropdownMenuSub>
               <DropdownMenuSubTrigger>语音识别引擎</DropdownMenuSubTrigger>
               <DropdownMenuPortal>
                 <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
@@ -182,7 +190,7 @@ export const Topbar = () => {
                   </DropdownMenuCheckboxItem>
                 </DropdownMenuSubContent>
               </DropdownMenuPortal>
-            </DropdownMenuSub>
+            </DropdownMenuSub> */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>颜色模式</DropdownMenuSubTrigger>
               <DropdownMenuPortal>
@@ -215,8 +223,9 @@ export const Topbar = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="dark:bg-zinc-600 min-w-24" align="start">
-            <DropdownMenuItem onClick={() => onOpen('active')}>激活</DropdownMenuItem>
-            <DropdownMenuItem>获取激活码</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDialog('freeTrial')}>试用</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDialog('active')}>激活</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openDialog('activeCode')}>获取激活码</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>

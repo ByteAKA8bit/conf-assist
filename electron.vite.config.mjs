@@ -35,7 +35,7 @@ export default defineConfig(({ mode }) => {
           '@assets': resolve('src/renderer/src/assets'),
           '@components': resolve('src/renderer/src/components'),
           '@hooks': resolve('src/renderer/src/hooks'),
-          '@pages': resolve('src/renderer/src/pages'),
+          '@windows': resolve('src/renderer/src/windows'),
           '@provider': resolve('src/renderer/src/provider'),
           '@utils': resolve('src/renderer/src/utils'),
         },

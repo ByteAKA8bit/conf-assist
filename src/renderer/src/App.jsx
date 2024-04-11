@@ -1,4 +1,4 @@
-import MainWindow from '@pages/main-window'
+import MainWindow from '@windows/main'
 import { ThemeProvider } from '@provider/theme-provider'
 import { ModalProvider } from '@provider/modal-provider'
 import { Toaster } from '@components/ui/toaster'

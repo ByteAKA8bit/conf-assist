@@ -18,6 +18,7 @@ export const {
   requestMediaAccess,
   audioGetSource,
   openExternal,
+  getMachineID,
 } = window.api
 
 export const generateWebSocketID = () => {

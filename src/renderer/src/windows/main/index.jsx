@@ -17,21 +17,32 @@ import {
   generateWebSocketID,
   requestMediaAccess,
   audioGetSource,
+  getMachineID,
 } from '@utils'
 import { AudioCapturer } from '@utils/audioCapturer'
-import { ServerStateMap, ModelMap, CorsProxyBaseUrl } from '@utils/constant'
+import { ServerStateMap, ModelMap, CorsProxyBaseUrl, ActiveBaseUrl } from '@utils/constant'
 import { Layout, Sidebar, Content } from '@components/layout'
-import { Prompt } from '@/pages/main-window/components/prompt'
-import { QuestionList } from '@/pages/main-window/components/question-list'
-import { Topbar } from '@/pages/main-window/components/topbar'
+import { Prompt } from '@windows/main/components/prompt'
+import { QuestionList } from '@windows/main/components/question-list'
+import { Topbar } from '@windows/main/components/topbar'
 import { useSpeechSupplier } from '@/hooks/use-speech-suplier'
 import { useModel } from '@/hooks/use-model'
+import { toast } from '@/components/ui/use-toast'
+import { useDialog } from '@/hooks/use-dialog'
+import ChoseWindowDialog from './components/chose-window'
 
 function MainWindow() {
   const WebSocketKey = generateWebSocketID()
   const supplier = useSpeechSupplier((state) => state.supplier)
   const model = useModel((state) => state.model)
   const fetchAnswerController = new AbortController()
+
+  const { openDialog } = useDialog()
+  const [choseWindowOpen, setChoseWindowOpen] = useState(false)
+  const [allWindow, setAllWindow] = useState([])
+  const chosedWindow = useRef(null)
+
+  const timeCounter = useRef(0)
 
   function serverStateReducer(state, action) {
     serverStateRef.current = action
@@ -403,15 +414,16 @@ function MainWindow() {
     if (audioCapturerRef.current) {
       return
     }
-    // 获取麦克风权限
-    await requestMediaAccess('microphone')
-    const source = await audioGetSource('microphone')
-    if (!source) {
+
+    if (!chosedWindow.current) {
+      if (timeCounter.current) {
+        clearInterval(timeCounter.current)
+      }
       wsClose(WebSocketKey)
       return
     }
     audioCapturerRef.current = new AudioCapturer(
-      source,
+      chosedWindow.current,
       (data) => {
         if (canSendMessageRef.current && data) {
           wsSend(WebSocketKey, data)
@@ -425,13 +437,16 @@ function MainWindow() {
       },
     )
     if (!audioCapturerRef.current) {
+      if (timeCounter.current) {
+        clearInterval(timeCounter.current)
+      }
       wsClose(WebSocketKey)
       return null
     }
     audioCapturerRef.current.start()
   }
 
-  const handleStart = () => {
+  const handleStart = async () => {
     // 不为初始值或者不为重试
     if (
       serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode &&
@@ -446,8 +461,92 @@ function MainWindow() {
       fetchAnswerController.abort()
       wsClose(WebSocketKey)
       serverStateDispatch(ServerStateMap.Init)
+
+      if (timeCounter.current) {
+        clearInterval(timeCounter.current)
+      }
+
+      if (localStorage.freeTrial && localStorage.freeTrial !== 'expired') {
+        updateFreeTrial()
+      }
+      if (localStorage.actived) {
+        updateActiveTimeleft()
+      }
+
       return
     }
+    await requestMediaAccess('microphone')
+    const sources = await audioGetSource()
+    setAllWindow(sources)
+    setChoseWindowOpen(true)
+  }
+
+  const handleConfirm = async (source) => {
+    setChoseWindowOpen(false)
+    // 确认窗口了，可以开始
+    chosedWindow.current = source
+    // 开始前检查
+    if (localStorage.freeTrial && localStorage.freeTrial !== 'expired') {
+      updateFreeTrial()
+    }
+    if (localStorage.actived) {
+      updateActiveTimeleft()
+    }
+
+    // 无试用，无激活
+    if (localStorage.freeTrial === 'expired' && localStorage.actived !== '1') {
+      toast({
+        title: '未激活，无试用权限',
+        duration: 1500,
+        className:
+          'bg-rose-400/90 fixed top-10 right-4 w-1/4 text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+      })
+      return
+    }
+
+    // 有试用
+    if (localStorage.freeTrial !== 'expired' && localStorage.freeTrialTimeleft !== undefined) {
+      // 算剩余时间
+      timeCounter.current = setInterval(() => {
+        const freeTrialTimeleft = Number(localStorage.freeTrialTimeleft)
+        console.log('freeTrialTimeleft: >> ', freeTrialTimeleft)
+        if (freeTrialTimeleft <= 0) {
+          // 试用结束
+          localStorage.freeTrial = 'expired'
+          localStorage.freeTrialTimeleft = 0
+          clearInterval(timeCounter.current)
+          toast({
+            title: '试用结束',
+            duration: 1500,
+            className:
+              'bg-orange-400/90 fixed top-10 right-4 w-1/4 text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+          })
+          handleStart()
+          setTimeout(() => {
+            openDialog('activeCode')
+          }, 2000)
+        } else {
+          localStorage.freeTrialTimeleft = freeTrialTimeleft - 1000
+        }
+      }, 1000)
+    }
+
+    // 有激活
+    if (localStorage.actived && localStorage.activeTimeleft) {
+      // 算剩余时间
+      timeCounter.current = setInterval(() => {
+        const activeTimeleft = Number(localStorage.activeTimeleft)
+        console.log(activeTimeleft)
+        if (activeTimeleft <= 0) {
+          localStorage.actived = 0
+          localStorage.activeTimeleft = 0
+          clearInterval(timeCounter.current)
+        } else {
+          localStorage.activeTimeleft = activeTimeleft - 1000
+        }
+      }, 1000)
+    }
+
     connectAudioRecongnizorServer()
   }
 
@@ -475,6 +574,91 @@ function MainWindow() {
     setSelectedQuestionID(id)
     if (serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode) {
       serverStateDispatch(ServerStateMap.AIComplete)
+    }
+  }
+
+  const updateActiveTimeleft = async () => {
+    const controller = new AbortController()
+    const timerId = setTimeout(() => controller.abort(), 3000)
+    const myHeaders = new Headers()
+    myHeaders.append('Content-Type', 'application/json')
+
+    const raw = JSON.stringify({
+      id: localStorage.activeID,
+      timeleft: Number(localStorage.activeTimeleft),
+    })
+
+    const requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: raw,
+      signal: controller.signal,
+      redirect: 'follow',
+    }
+
+    try {
+      const response = await fetch(`${ActiveBaseUrl}/update-active-timeleft`, requestOptions)
+      const result = await response.json()
+      if (result.code !== 200) {
+        throw new Error('更新剩余时间失败')
+      }
+      const { timeleft } = result.data
+      localStorage.activeTimeleft = timeleft
+      if (Number(timeleft) <= 0) {
+        localStorage.actived = 0
+        setTimeout(() => {
+          openDialog('active')
+        }, 1000)
+      }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      clearTimeout(timerId)
+    }
+  }
+
+  const updateFreeTrial = async () => {
+    if (!localStorage.machineID) {
+      localStorage.machineID = await getMachineID()
+    }
+    const controller = new AbortController()
+    const timerId = setTimeout(() => controller.abort(), 3000)
+    const myHeaders = new Headers()
+    myHeaders.append('Content-Type', 'application/json')
+
+    const raw = JSON.stringify({
+      machineID: localStorage.machineID,
+      timeleft: Number(localStorage.freeTrialTimeleft),
+    })
+
+    const requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: raw,
+      signal: controller.signal,
+      redirect: 'follow',
+    }
+
+    try {
+      const response = await fetch(`${ActiveBaseUrl}/update-free-trial`, requestOptions)
+      const result = await response.json()
+      if (result.code !== 200) {
+        throw new Error('更新试用时间失败')
+      }
+      const { expired, usage_time } = result.data
+      if (expired) {
+        localStorage.freeTrial = 'expired'
+        localStorage.freeTrialTimeleft = 0
+        setTimeout(() => {
+          openDialog('activeCode')
+        }, 1000)
+      } else {
+        localStorage.freeTrialTimeleft = 15 * 60 * 1000 - usage_time
+      }
+    } catch (error) {
+      console.error(error)
+    } finally {
+      clearTimeout(timerId)
     }
   }
 
@@ -543,6 +727,12 @@ function MainWindow() {
               ''}
           </Markdown>
           <Prompt start={handleStart} reGenerate={handleRegenerate} serverState={serverState} />
+          <ChoseWindowDialog
+            open={choseWindowOpen}
+            setOpen={setChoseWindowOpen}
+            sources={allWindow}
+            onConfirm={handleConfirm}
+          />
         </Content>
       </Layout>
     </>

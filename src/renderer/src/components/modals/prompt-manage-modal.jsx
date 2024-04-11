@@ -5,7 +5,7 @@ import { Form, FormControl, FormField, FormItem } from '@components/ui/form'
 import { Textarea } from '@components/ui/textarea'
 import { Button } from '@components/ui/button'
 import { useToast } from '@components/ui/use-toast'
-import { useModal } from '@/hooks/use-modal'
+import { useDialog } from '@/hooks/use-dialog'
 import {
   Dialog,
   DialogContent,
@@ -16,11 +16,11 @@ import {
 } from '@/components/ui/dialog'
 
 const fromScheme = z.object({
-  prefix: z.string().max(120, { message: '前缀不能多于120字' }),
+  prefix: z.string().max(500, { message: '提示词不能多于120字' }),
 })
 
 export const PromptManageModal = () => {
-  const { isOpen, onClose, type } = useModal()
+  const { isOpen, closeDialog, type } = useDialog()
   const { toast } = useToast()
 
   const isModalOpen = isOpen && type === 'promptManage'
@@ -43,17 +43,18 @@ export const PromptManageModal = () => {
       className:
         'bg-green-400/90 fixed top-10 right-4 w-1/4 text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
     })
+    closeDialog()
   }
 
   const handleClose = () => {
-    onClose()
+    closeDialog()
   }
 
   return (
     <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-white text-black dark:bg-zinc-600 dark:text-white p-2 overflow-hidden">
         <DialogHeader className="pt-8 px-6">
-          <DialogTitle className="text-2xl text-center font-bold">自定义问题前缀</DialogTitle>
+          <DialogTitle className="text-2xl text-center font-bold">预设提示词</DialogTitle>
           <DialogDescription className="text-center">
             在问题前添加前缀，可使模型按照自己需要的方式生成回答
           </DialogDescription>

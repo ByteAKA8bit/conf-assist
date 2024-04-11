@@ -78,19 +78,25 @@ export class AudioCapturer {
   async getUserMedia(getStreamAudioSuccess, getStreamAudioFail) {
     const mediaOption = {
       audio: {
-        device_id: this.source.id,
+        mandatory: {
+          // 无需指定mediaSourceId就可以录音了，录得是系统音频
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: this.source.id,
+        },
       },
-      video: false,
+      // 如果想要录制音频，必须同样把视频的选项带上，否则会失败
+      video: {
+        mandatory: {
+          chromeMediaSource: 'desktop',
+          chromeMediaSourceId: this.source.id,
+        },
+      },
     }
-    if (this.source === 'microphone') {
-      // 麦克风
-      mediaOption.audio = true
-    }
-
     if (AudioCapturer.isSupportMediaDevicesMedia()) {
       navigator.mediaDevices
         .getUserMedia(mediaOption)
         .then((stream) => {
+          stream.getVideoTracks().forEach((track) => stream.removeTrack(track))
           this.stream = stream
           getStreamAudioSuccess.call(this, stream)
         })
