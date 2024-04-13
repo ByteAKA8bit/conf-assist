@@ -475,25 +475,22 @@ function MainWindow() {
 
       return
     }
-    await requestMediaAccess('microphone')
-    const sources = await audioGetSource()
-    setAllWindow(sources)
-    setChoseWindowOpen(true)
-  }
 
-  const handleConfirm = async (source) => {
-    setChoseWindowOpen(false)
-    // 确认窗口了，可以开始
-    chosedWindow.current = source
-    // 开始前检查
-    if (localStorage.freeTrial && localStorage.freeTrial !== 'expired') {
-      updateFreeTrial()
-    }
-    if (localStorage.actived) {
-      updateActiveTimeleft()
+    // 未点击试用
+    if (localStorage.freeTrial === undefined) {
+      toast({
+        title: '请点击开始试用',
+        duration: 1500,
+        className:
+          'bg-orange-400/90 fixed top-10 right-4 w-1/4 text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+      })
+      setTimeout(() => {
+        openDialog('freeTrial')
+      }, 500)
+      return
     }
 
-    // 无试用，无激活
+    // 试用过期，无激活
     if (localStorage.freeTrial === 'expired' && localStorage.actived !== '1') {
       toast({
         title: '未激活，无试用权限',
@@ -504,12 +501,30 @@ function MainWindow() {
       return
     }
 
-    // 有试用
+    await requestMediaAccess('microphone')
+    const sources = await audioGetSource()
+    setAllWindow(sources)
+    setChoseWindowOpen(true)
+  }
+
+  const handleConfirm = async (source) => {
+    setChoseWindowOpen(false)
+    // 确认窗口了，可以开始
+    chosedWindow.current = source
+
+    // 开始前检查
+    if (localStorage.freeTrial && localStorage.freeTrial !== 'expired') {
+      updateFreeTrial()
+    }
+    if (localStorage.actived) {
+      updateActiveTimeleft()
+    }
+
+    // 有试用，无激活
     if (localStorage.freeTrial !== 'expired' && localStorage.freeTrialTimeleft !== undefined) {
       // 算剩余时间
       timeCounter.current = setInterval(() => {
         const freeTrialTimeleft = Number(localStorage.freeTrialTimeleft)
-        console.log('freeTrialTimeleft: >> ', freeTrialTimeleft)
         if (freeTrialTimeleft <= 0) {
           // 试用结束
           localStorage.freeTrial = 'expired'
@@ -523,10 +538,13 @@ function MainWindow() {
           })
           handleStart()
           setTimeout(() => {
-            openDialog('activeCode')
-          }, 2000)
+            openDialog('freeTrial')
+          }, 1500)
         } else {
           localStorage.freeTrialTimeleft = freeTrialTimeleft - 1000
+          if (freeTrialTimeleft % 60000 === 0) {
+            updateFreeTrial()
+          }
         }
       }, 1000)
     }
@@ -536,13 +554,15 @@ function MainWindow() {
       // 算剩余时间
       timeCounter.current = setInterval(() => {
         const activeTimeleft = Number(localStorage.activeTimeleft)
-        console.log(activeTimeleft)
         if (activeTimeleft <= 0) {
           localStorage.actived = 0
           localStorage.activeTimeleft = 0
           clearInterval(timeCounter.current)
         } else {
           localStorage.activeTimeleft = activeTimeleft - 1000
+          if (activeTimeleft % 60000 === 0) {
+            updateActiveTimeleft()
+          }
         }
       }, 1000)
     }
@@ -645,7 +665,7 @@ function MainWindow() {
       if (result.code !== 200) {
         throw new Error('更新试用时间失败')
       }
-      const { expired, usage_time } = result.data
+      const { expired, timeleft } = result.data
       if (expired) {
         localStorage.freeTrial = 'expired'
         localStorage.freeTrialTimeleft = 0
@@ -653,7 +673,7 @@ function MainWindow() {
           openDialog('activeCode')
         }, 1000)
       } else {
-        localStorage.freeTrialTimeleft = 15 * 60 * 1000 - usage_time
+        localStorage.freeTrialTimeleft = timeleft
       }
     } catch (error) {
       console.error(error)

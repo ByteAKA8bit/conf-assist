@@ -123,7 +123,9 @@ export const FreeTrialModal = () => {
               激活
             </Button>
             <Button disabled={loading} onClick={startFreeTrial}>
-              试用
+              {localStorage.freeTrial && localStorage.freeTrial !== 'expired'
+                ? '继续试用'
+                : '开始试用'}
             </Button>
           </DialogFooter>
         ) : (

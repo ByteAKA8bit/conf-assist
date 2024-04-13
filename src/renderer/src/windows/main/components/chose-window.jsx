@@ -33,13 +33,10 @@ function ChoseWindowDialog({ open, setOpen, sources, onConfirm }) {
             当您不确定该选择哪个窗口时请选择整个屏幕
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-wrap max-h-[60vh] justify-evenly items-center w-full space-x-4 overflow-auto">
+        <div className="flex flex-wrap max-h-[60vh] justify-evenly items-center w-full overflow-auto">
           {sources?.map((source) => {
-            console.log(source.name)
             if (source.id.includes('window')) {
-              console.log(source.name)
               const title = source.name.split(' - ')
-              console.log(title)
               source.name = title[title.length - 1]
             }
             return (
@@ -49,7 +46,7 @@ function ChoseWindowDialog({ open, setOpen, sources, onConfirm }) {
                 }}
                 key={source.id}
                 className={cn(
-                  'flex flex-col items-center ring-2 ring-zinc-100 mt-4 pt-4 px-4 pb-2 rounded-lg hover:bg-blue-400',
+                  'flex flex-col items-center ring-2 ring-zinc-100 my-2 pt-4 px-4 pb-2 rounded-lg hover:bg-blue-400',
                   source.id === chosed?.id &&
                     'bg-blue-500/90 ring-2 hover:bg-blue-500 text-zinc-100',
                 )}

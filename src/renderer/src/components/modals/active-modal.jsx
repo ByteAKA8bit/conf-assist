@@ -16,9 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { getMachineID } from '@/utils'
 
 const formSchema = z.object({
-  activeCode: z.string().length(100, { message: '激活码应该为100个字符' }),
+  activeCode: z.string().max(100, { message: '激活码最多为100个字符' }),
 })
 
 export const ActiveModal = () => {
@@ -45,8 +46,13 @@ export const ActiveModal = () => {
     const myHeaders = new Headers()
     myHeaders.append('Content-Type', 'application/json')
 
+    if (!localStorage.machineID) {
+      localStorage.machineID = await getMachineID()
+    }
+
     const raw = JSON.stringify({
       activeCode: values.activeCode,
+      machineID: localStorage.machineID,
     })
 
     const requestOptions = {
