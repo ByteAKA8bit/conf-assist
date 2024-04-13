@@ -502,6 +502,7 @@ function MainWindow() {
     }
 
     await requestMediaAccess('microphone')
+    await requestMediaAccess('screen')
     const sources = await audioGetSource()
     setAllWindow(sources)
     setChoseWindowOpen(true)
