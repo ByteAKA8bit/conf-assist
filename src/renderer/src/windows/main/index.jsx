@@ -476,7 +476,7 @@ function MainWindow() {
       return
     }
 
-    // 未点击试用
+    // 未点击试用,打开试用窗口
     if (localStorage.freeTrial === undefined) {
       toast({
         title: '请点击开始试用',
@@ -512,7 +512,7 @@ function MainWindow() {
     // 确认窗口了，可以开始
     chosedWindow.current = source
 
-    // 开始前检查
+    // 开始前更新一次
     if (localStorage.freeTrial && localStorage.freeTrial !== 'expired') {
       updateFreeTrial()
     }
@@ -542,6 +542,7 @@ function MainWindow() {
           }, 1500)
         } else {
           localStorage.freeTrialTimeleft = freeTrialTimeleft - 1000
+          // 每分钟更新一次
           if (freeTrialTimeleft % 60000 === 0) {
             updateFreeTrial()
           }
