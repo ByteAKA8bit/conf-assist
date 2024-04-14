@@ -23,9 +23,11 @@ import { useSpeechSupplier } from '@/hooks/use-speech-suplier'
 import { useModel } from '@/hooks/use-model'
 import { ModelMap } from '@/utils/constant'
 import { toast } from '@/components/ui/use-toast'
+import { getDB } from '@/utils/indexedDB'
 
 export const Topbar = () => {
   const [maxmized, setMaxmized] = useState(false)
+  const [questions, setQuestions] = useState({})
   const { supplier, setSupplier } = useSpeechSupplier()
   const { model, setModel } = useModel()
 
@@ -43,55 +45,47 @@ export const Topbar = () => {
     if (localStorage.freeTrial === undefined) {
       openDialog('freeTrial')
     }
+
+    const db = getDB()
+
+    db.open([{ name: 'question', keyPath: 'timestamp' }]).then(() => {
+      const current = new Date().getTime()
+      const oneYearAgo = current - 365 * 24 * 60 * 60 * 1000
+      const range = IDBKeyRange.bound(oneYearAgo, current)
+      db.query('question', '', range).then((res) => {
+        // 年月日
+        // 定义一个空对象来存储转换后的数据
+        const transformedData = {}
+
+        // 遍历 dataList
+        res.forEach((item) => {
+          item.timestamp
+          const date = new Date(item.timestamp)
+          const year = date.getFullYear()
+          const month = date.getMonth() + 1 // 月份从0开始，所以要加1
+          const day = date.getDate()
+
+          if (!transformedData[`${year}年${month}月`]) {
+            transformedData[`${year}年${month}月`] = {}
+          }
+
+          if (!transformedData[`${year}年${month}月`][`${day}日`]) {
+            transformedData[`${year}年${month}月`][`${day}日`] = []
+          }
+
+          // 将时间戳、问题和答案放入对应的日期数组中
+          transformedData[`${year}年${month}月`][`${day}日`].push(item)
+        })
+        setQuestions(transformedData)
+        db.close()
+      })
+    })
   }, [])
 
   return (
     <div className="absolute h-10 w-full border-b-[1px] bg-white flex justify-start items-center dark:bg-zinc-700 dark:border-zinc-800/50">
       <header className="w-[calc(100vw-80px)] h-full flex justify-start items-center pl-2 inset-0 bg-transparent">
         <img className="w-5 h-5 mr-1" src="./images/icon.svg" alt="conf-assist" />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="focus-visible:ring-0 focus-visible:ring-offset-0 h-7 hidden"
-            >
-              历史记录
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="dark:bg-zinc-600 min-w-24" align="start">
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>2024-01-01</DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
-                  <DropdownMenuItem>第一场面试</DropdownMenuItem>
-                  <DropdownMenuItem>第二场面试</DropdownMenuItem>
-                  <DropdownMenuItem>第三场面试</DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>2024-01-02</DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
-                  <DropdownMenuItem>第一场面试</DropdownMenuItem>
-                  <DropdownMenuItem>第二场面试</DropdownMenuItem>
-                  <DropdownMenuItem>第三场面试</DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>2024-01-03</DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
-                  <DropdownMenuItem>第一场面试</DropdownMenuItem>
-                  <DropdownMenuItem>第二场面试</DropdownMenuItem>
-                  <DropdownMenuItem>第三场面试</DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-          </DropdownMenuContent>
-        </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

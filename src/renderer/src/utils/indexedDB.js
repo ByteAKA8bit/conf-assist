@@ -7,7 +7,7 @@ class IndexedDB {
   }
 
   // 打开数据库
-  open() {
+  open(tables) {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.dbVersion)
 
@@ -22,10 +22,12 @@ class IndexedDB {
 
       request.onupgradeneeded = (event) => {
         const db = event.target.result
-        let objectStore = db.objectStoreNames.contains('question')
-        if (!objectStore) {
-          objectStore = db.createObjectStore('question', { keyPath: 'timestamp' })
-        }
+        tables.forEach((table) => {
+          let objectStore = db.objectStoreNames.contains(table.name)
+          if (!objectStore) {
+            objectStore = db.createObjectStore(table.name, { keyPath: table.keyPath })
+          }
+        })
       }
     })
   }
@@ -38,11 +40,11 @@ class IndexedDB {
   }
 
   // 存入数据
-  put(objectStoreName, key, value) {
+  put(objectStoreName, value) {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([objectStoreName], 'readwrite')
       const objectStore = transaction.objectStore(objectStoreName)
-      const request = objectStore.put(value, key)
+      const request = objectStore.put(value)
 
       request.onsuccess = () => {
         resolve()
@@ -93,16 +95,21 @@ class IndexedDB {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([objectStoreName], 'readonly')
       const objectStore = transaction.objectStore(objectStoreName)
-      const index = objectStore.index(indexName)
-      const request = index.openCursor(range)
-
+      let request = null
+      if (indexName) {
+        const index = objectStore.index(indexName)
+        request = index.openCursor(range)
+      } else {
+        request = objectStore.openCursor(range)
+      }
+      const result = []
       request.onsuccess = (event) => {
         const cursor = event.target.result
         if (cursor) {
-          resolve(cursor.value)
+          result.push(cursor.value)
           cursor.continue()
         } else {
-          resolve([])
+          resolve(result)
         }
       }
 

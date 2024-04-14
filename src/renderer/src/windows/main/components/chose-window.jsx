@@ -30,10 +30,26 @@ function ChoseWindowDialog({ open, setOpen, sources, onConfirm }) {
           <DialogTitle className="text-2xl text-center font-bold">选择会议</DialogTitle>
           <DialogDescription className="text-center">
             请选择需要使用助手的会议窗口 <br />
-            当您不确定该选择哪个窗口时请选择整个屏幕
+            不确定该选择哪个窗口时请选择整个屏幕
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-wrap max-h-[60vh] justify-evenly items-center w-full overflow-auto">
+          <div
+            onClick={() => {
+              setChosed('microphone')
+            }}
+            className={cn(
+              'flex flex-col items-center ring-2 ring-zinc-100 my-2 pt-4 px-4 pb-2 rounded-lg hover:bg-blue-400',
+              'microphone' === chosed && 'bg-blue-500/90 ring-2 hover:bg-blue-500 text-zinc-100',
+            )}
+          >
+            <img
+              src="./images/icon.svg"
+              alt="麦克风"
+              className="rounded-lg w-full max-h-[128px] p-4 bg-zinc-100"
+            />
+            电脑麦克风输入
+          </div>
           {sources?.map((source) => {
             if (source.id.includes('window')) {
               const title = source.name.split(' - ')
@@ -46,7 +62,7 @@ function ChoseWindowDialog({ open, setOpen, sources, onConfirm }) {
                 }}
                 key={source.id}
                 className={cn(
-                  'flex flex-col items-center ring-2 ring-zinc-100 my-2 pt-4 px-4 pb-2 rounded-lg hover:bg-blue-400',
+                  'flex flex-col items-center ring-2 ring-zinc-100 my-2 mx-2 pt-4 px-4 pb-2 rounded-lg hover:bg-blue-400',
                   source.id === chosed?.id &&
                     'bg-blue-500/90 ring-2 hover:bg-blue-500 text-zinc-100',
                 )}

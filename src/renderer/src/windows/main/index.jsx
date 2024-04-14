@@ -30,11 +30,15 @@ import { useModel } from '@/hooks/use-model'
 import { toast } from '@/components/ui/use-toast'
 import { useDialog } from '@/hooks/use-dialog'
 import ChoseWindowDialog from './components/chose-window'
+import { getDB } from '@/utils/indexedDB'
 
 function MainWindow() {
   const WebSocketKey = generateWebSocketID()
+  const db = getDB()
+
   const supplier = useSpeechSupplier((state) => state.supplier)
   const model = useModel((state) => state.model)
+
   const fetchAnswerController = new AbortController()
 
   const { openDialog } = useDialog()
@@ -55,8 +59,27 @@ function MainWindow() {
 
   function questionListReducer(state, action) {
     // 后续从indexedDB增删改查
-    questionListRef.current = action
-    return action
+
+    const { type, payload } = action
+    switch (type) {
+      case 'insert':
+        // 取最后一条数据，push
+        db.open([{ name: 'quesiton', keyPath: 'timestamp' }]).then(() => {
+          db.put('question', payload[payload.length - 1]).then(() => {
+            db.close()
+          })
+        })
+        break
+      case 'update':
+        db.open([{ name: 'quesiton', keyPath: 'timestamp' }]).then(() => {
+          db.put('question', action.updateItem).then(() => {
+            db.close()
+          })
+        })
+        break
+    }
+    questionListRef.current = action.payload
+    return action.payload
   }
   const questionListRef = useRef([])
   const [questionList, questionListDispatch] = useReducer(questionListReducer, [])
@@ -127,10 +150,14 @@ function MainWindow() {
     newQuestionRef.current = ''
 
     if (!regenerate) {
-      questionListDispatch([
-        ...questionListRef.current.filter((item) => item.timestamp !== timestamp),
-        { timestamp, question, answer: '' },
-      ])
+      // 插入一条新的数据
+      questionListDispatch({
+        type: 'insert',
+        payload: [
+          ...questionListRef.current.filter((item) => item.timestamp !== timestamp),
+          { timestamp, question, answer: '' },
+        ],
+      })
       setSelectedQuestionID(() => timestamp)
     }
 
@@ -191,7 +218,12 @@ function MainWindow() {
             questionItem.answer = answerSnippet
             const before = questionListRef.current.slice(0, currentIndex)
             const after = questionListRef.current.slice(currentIndex + 1)
-            questionListDispatch([...before, questionItem, ...after])
+            // 更新一条数据
+            questionListDispatch({
+              type: 'update',
+              payload: [...before, questionItem, ...after],
+              updateItem: questionItem,
+            })
           }
         })
       }
@@ -738,6 +770,7 @@ function MainWindow() {
             selected={selectedQuestionID}
             onSelect={handleQuestionClick}
           />
+          {/* 这里加上HistoryList 内部自动加载历史记录 传出历史记录点击事件 */}
         </Sidebar>
         <Content className="p-2 flex flex-col bg-zinc-100 dark:bg-zinc-600">
           <Markdown

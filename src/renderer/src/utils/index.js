@@ -7,7 +7,6 @@ export function cn(...inputs) {
 }
 
 export const {
-  mainFetch,
   wsCreate,
   wsSend,
   wsClose,

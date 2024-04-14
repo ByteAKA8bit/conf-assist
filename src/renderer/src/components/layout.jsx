@@ -15,7 +15,7 @@ export const Sidebar = ({ className, children, ...props }) => {
       onClick={(events) => {
         events.stopPropagation()
       }}
-      className={cn('w-1/4 mt-8 min-w-[300px] h-[calc(100vh-2rem)] overflow-auto', className)}
+      className={cn('w-1/4 mt-10 min-w-[300px] h-[calc(100vh-2.5rem)] overflow-auto', className)}
       {...props}
     >
       {children}
