@@ -91,7 +91,7 @@ class IndexedDB {
   }
 
   // 查询数据
-  query(objectStoreName, indexName, range) {
+  query(objectStoreName, range, indexName) {
     return new Promise((resolve, reject) => {
       const transaction = this.db.transaction([objectStoreName], 'readonly')
       const objectStore = transaction.objectStore(objectStoreName)

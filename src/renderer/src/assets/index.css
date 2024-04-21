@@ -91,4 +91,8 @@
     background-color: gray;
     border-radius: 6px;
   }
+
+  aside::-webkit-scrollbar {
+    width: 0;
+  }
 }

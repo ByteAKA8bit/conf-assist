@@ -3,7 +3,7 @@ import { cn } from '@utils'
 import { ServerStateMap } from '@utils/constant'
 import { Button } from '@components/ui/button'
 
-export const Prompt = ({ start, reGenerate, serverState }) => {
+export const ActionButton = ({ start, reGenerate, serverState }) => {
   const [generateButtonProps, setGenerateButtonProps] = useState(ServerStateMap.Init.generate)
   const [actionButtonProps, setActionButtonProps] = useState(ServerStateMap.Init.action)
 

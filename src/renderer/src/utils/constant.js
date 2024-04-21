@@ -153,26 +153,6 @@ export const ServerStateMap = {
 }
 
 export const ModelMap = {
-  Gemini: {
-    id: 'gemini',
-    name: '谷歌双子座',
-    hostname: 'generativelanguage.googleapis.com',
-    pathName: `/v1beta/models/gemini-pro:streamGenerateContent?alt=sse&key=${import.meta.env.VITE_GOOGLE_AI_STUIDO_KEY}`,
-    headers: [{ key: 'Cache-Control', value: 'no-cache' }],
-    createBody: (question = '介绍一下你自己') =>
-      JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: localStorage.promptPrefix ? localStorage.promptPrefix + question : question,
-              },
-            ],
-          },
-        ],
-      }),
-    valuePath: ['candidates', 0, 'content', 'parts', 0, 'text'],
-  },
   Aliyun: {
     id: 'alibaba',
     name: '阿里通义千问',
@@ -194,24 +174,5 @@ export const ModelMap = {
         },
       }),
     valuePath: ['output', 'text'],
-  },
-  Baidu: {
-    id: 'baidu',
-    name: '百度文心一言',
-    hostname: 'aip.baidubce.com',
-    pathName: `/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions?access_token=${localStorage.baiduAccessToken}`,
-    headers: [],
-    accessTokenPathName: `/oauth/2.0/token?grant_type=client_credentials&client_id=${import.meta.env.VITE_BAIDU_AI_API_KEY}&client_secret=${import.meta.env.VITE_BAIDU_AI_SECRET_KEY}`,
-    createBody: (question = '介绍一下你自己') =>
-      JSON.stringify({
-        messages: [
-          {
-            role: 'user',
-            content: question,
-          },
-        ],
-        stream: true,
-      }),
-    valuePath: ['result'],
   },
 }

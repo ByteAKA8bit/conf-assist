@@ -71,7 +71,7 @@ export const PromptManageModal = () => {
                       <Textarea
                         disabled={isLoading}
                         className="bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0 dark:bg-zinc-400/50 dark:text-white"
-                        placeholder="请用一句话简单回答后再详细论述"
+                        placeholder="请将问题回答分为核心回答和详细回答，核心回答尽量简化为一句话："
                         {...field}
                       />
                     </FormControl>

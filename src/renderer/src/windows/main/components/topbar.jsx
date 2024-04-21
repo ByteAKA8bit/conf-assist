@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Moon, Sun, SunMoon } from 'lucide-react'
 import { LuXCircle, LuMinusCircle, LuMaximize, LuMinimize2 } from 'react-icons/lu'
 
 import { Button } from '@components/ui/button'
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
@@ -19,17 +18,9 @@ import {
 import { openExternal } from '@/utils'
 import { useTheme } from '@/provider/theme-provider'
 import { useDialog } from '@/hooks/use-dialog'
-import { useSpeechSupplier } from '@/hooks/use-speech-suplier'
-import { useModel } from '@/hooks/use-model'
-import { ModelMap } from '@/utils/constant'
-import { toast } from '@/components/ui/use-toast'
-import { getDB } from '@/utils/indexedDB'
 
 export const Topbar = () => {
   const [maxmized, setMaxmized] = useState(false)
-  const [questions, setQuestions] = useState({})
-  const { supplier, setSupplier } = useSpeechSupplier()
-  const { model, setModel } = useModel()
 
   const { setTheme } = useTheme()
   const { openDialog } = useDialog()
@@ -40,47 +31,6 @@ export const Topbar = () => {
     setMaxmized((max) => !max)
     window.electron.maxmize()
   }
-
-  useEffect(() => {
-    if (localStorage.freeTrial === undefined) {
-      openDialog('freeTrial')
-    }
-
-    const db = getDB()
-
-    db.open([{ name: 'question', keyPath: 'timestamp' }]).then(() => {
-      const current = new Date().getTime()
-      const oneYearAgo = current - 365 * 24 * 60 * 60 * 1000
-      const range = IDBKeyRange.bound(oneYearAgo, current)
-      db.query('question', '', range).then((res) => {
-        // 年月日
-        // 定义一个空对象来存储转换后的数据
-        const transformedData = {}
-
-        // 遍历 dataList
-        res.forEach((item) => {
-          item.timestamp
-          const date = new Date(item.timestamp)
-          const year = date.getFullYear()
-          const month = date.getMonth() + 1 // 月份从0开始，所以要加1
-          const day = date.getDate()
-
-          if (!transformedData[`${year}年${month}月`]) {
-            transformedData[`${year}年${month}月`] = {}
-          }
-
-          if (!transformedData[`${year}年${month}月`][`${day}日`]) {
-            transformedData[`${year}年${month}月`][`${day}日`] = []
-          }
-
-          // 将时间戳、问题和答案放入对应的日期数组中
-          transformedData[`${year}年${month}月`][`${day}日`].push(item)
-        })
-        setQuestions(transformedData)
-        db.close()
-      })
-    })
-  }, [])
 
   return (
     <div className="absolute h-10 w-full border-b-[1px] bg-white flex justify-start items-center dark:bg-zinc-700 dark:border-zinc-800/50">
@@ -101,90 +51,6 @@ export const Topbar = () => {
             <DropdownMenuItem onClick={() => openDialog('promptManage')}>
               预设提示词
             </DropdownMenuItem>
-            {/* <DropdownMenuSub>
-              <DropdownMenuSubTrigger>语音识别引擎</DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
-                  <DropdownMenuCheckboxItem
-                    checked={supplier === 'tencent'}
-                    onCheckedChange={() => {
-                      toast({
-                        description: `语音引擎切换为：腾讯语音识别`,
-                        duration: 1500,
-                        className:
-                          'bg-green-400/90 fixed top-10 right-4 w-[16rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
-                      })
-                      setSupplier('tencent')
-                    }}
-                  >
-                    腾讯
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={supplier === 'xunfei'}
-                    onCheckedChange={() => {
-                      toast({
-                        title: `语音引擎切换为：讯飞语音识别`,
-                        duration: 1500,
-                        className:
-                          'bg-green-400/90 fixed top-10 right-4 w-[16rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
-                      })
-                      setSupplier('xunfei')
-                    }}
-                  >
-                    讯飞
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger>文本生成模型</DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
-                  <DropdownMenuCheckboxItem
-                    checked={model === ModelMap.Gemini.id}
-                    onCheckedChange={() => {
-                      toast({
-                        title: `模型切换为：${ModelMap.Gemini.name}`,
-                        duration: 1500,
-                        className:
-                          'bg-green-400/90 fixed top-10 right-4 w-[14rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
-                      })
-                      setModel(ModelMap.Gemini.id)
-                    }}
-                  >
-                    {ModelMap.Gemini.name}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={model === ModelMap.Aliyun.id}
-                    onCheckedChange={() => {
-                      toast({
-                        title: `模型切换为：${ModelMap.Aliyun.name}`,
-                        duration: 1500,
-                        className:
-                          'bg-green-400/90 fixed top-10 right-4 w-[14rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
-                      })
-                      setModel(ModelMap.Aliyun.id)
-                    }}
-                  >
-                    {ModelMap.Aliyun.name}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={model === ModelMap.Baidu.id}
-                    onCheckedChange={() => {
-                      toast({
-                        title: `模型切换为：${ModelMap.Baidu.name}`,
-                        duration: 1500,
-                        className:
-                          'bg-green-400/90 fixed top-10 right-4 w-[14rem] text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
-                      })
-                      setModel(ModelMap.Baidu.id)
-                    }}
-                  >
-                    {ModelMap.Baidu.name}
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub> */}
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>颜色模式</DropdownMenuSubTrigger>
               <DropdownMenuPortal>

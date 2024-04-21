@@ -1,62 +1,51 @@
-import queryString from 'query-string'
-import { v4 as uuidv4 } from 'uuid'
-import CryptoJS from 'crypto-js'
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useReducer, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import {
-  wsCreate,
-  wsSend,
-  wsClose,
-  wsOnOpenRegister,
-  wsOnMessageRegister,
-  wsOnCloseRegister,
-  wsOnErrorRegister,
-  generateWebSocketID,
-  requestMediaAccess,
-  audioGetSource,
-  getMachineID,
-} from '@utils'
+import { requestMediaAccess, audioGetSource, getMachineID } from '@utils'
 import { AudioCapturer } from '@utils/audioCapturer'
-import { ServerStateMap, ModelMap, CorsProxyBaseUrl, ActiveBaseUrl } from '@utils/constant'
+import { ServerStateMap, CorsProxyBaseUrl, ActiveBaseUrl, ModelMap } from '@utils/constant'
 import { Layout, Sidebar, Content } from '@components/layout'
-import { Prompt } from '@windows/main/components/prompt'
 import { QuestionList } from '@windows/main/components/question-list'
 import { Topbar } from '@windows/main/components/topbar'
-import { useSpeechSupplier } from '@/hooks/use-speech-suplier'
-import { useModel } from '@/hooks/use-model'
 import { toast } from '@/components/ui/use-toast'
 import { useDialog } from '@/hooks/use-dialog'
 import ChoseWindowDialog from './components/chose-window'
 import { getDB } from '@/utils/indexedDB'
+import { ActionButton } from '@windows/main/components/action-button'
+import { HistoryQuestions } from './components/history-questions'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import getToken from '@/utils/aliyunASRAccessToken'
+import { generateRandomString } from '@/utils'
 
 function MainWindow() {
-  const WebSocketKey = generateWebSocketID()
   const db = getDB()
+  const ASRWebSocket = useRef(null)
 
-  const supplier = useSpeechSupplier((state) => state.supplier)
-  const model = useModel((state) => state.model)
-
+  // 回答请求控制
   const fetchAnswerController = new AbortController()
 
+  // 全局弹窗
   const { openDialog } = useDialog()
+
+  // 选择监听弹窗
   const [choseWindowOpen, setChoseWindowOpen] = useState(false)
+  // 全部打开的应用程序
   const [allWindow, setAllWindow] = useState([])
   const chosedWindow = useRef(null)
-
+  // 用于控制更新可用时间
   const timeCounter = useRef(0)
-
+  // 服务器状态
   function serverStateReducer(state, action) {
     serverStateRef.current = action
     return action
   }
   const serverStateRef = useRef(ServerStateMap.Init)
   const [serverState, serverStateDispatch] = useReducer(serverStateReducer, ServerStateMap.Init)
-
-  const currentModelRef = useRef()
-
+  // 当前使用的模型
+  const currentModelRef = useRef(ModelMap.Aliyun)
+  // 记录问题
   function questionListReducer(state, action) {
     // 后续从indexedDB增删改查
 
@@ -83,50 +72,19 @@ function MainWindow() {
   }
   const questionListRef = useRef([])
   const [questionList, questionListDispatch] = useReducer(questionListReducer, [])
-
+  // 当前新问题
   const newQuestionRef = useRef('')
   const [newQuestion, setNewQuestion] = useState('')
+  // 选中的问题
+  const [selectedQuestion, setSelectedQuestion] = useState(null)
+  // 选中的历史记录
+  const [selectedHistory, setSelectedHistory] = useState(null)
 
-  const [selectedQuestionID, setSelectedQuestionID] = useState(0)
+  // 是否能够发送语音到识别服务器
+  const canSendMessageSignal = useRef(false)
 
-  const canSendMessageRef = useRef(false)
-
-  const divRef = useRef()
-  const ASRTimeout = useRef(0)
+  // 语音识别实例
   const audioCapturerRef = useRef()
-
-  const fetchBaiduAccessToken = async (timestamp) => {
-    let access_token = localStorage.baiduAccessToken
-    let expires_in = localStorage.baiduAccessTokenExpires
-    // token 存在且有效期大于1天 不做处理
-    if (access_token && expires_in && Number(expires_in) - timestamp > 24 * 60 * 60 * 1000) {
-      return
-    }
-    const controller = new AbortController()
-    const timerId = setTimeout(() => controller.abort(), 3000)
-    const headers = new Headers()
-
-    const requestOptions = {
-      method: 'POST',
-      headers: headers,
-      signal: controller.signal,
-      redirect: 'follow',
-    }
-
-    const url = `${CorsProxyBaseUrl}${ModelMap.Baidu.accessTokenPathName}&hostname=${ModelMap.Baidu.hostname}`
-
-    try {
-      const response = await fetch(url, requestOptions)
-      const result = await response.json()
-      localStorage.baiduAccessToken = result.access_token
-      localStorage.baiduAccessTokenExpires = timestamp + result.expires_in * 1000
-      return result
-    } catch (error) {
-      console.error('FETCH_BAIDU_ACCESS_TOKEN_FAILED: ', error)
-    } finally {
-      clearTimeout(timerId)
-    }
-  }
 
   function getText(data, index = 0) {
     try {
@@ -158,14 +116,12 @@ function MainWindow() {
           { timestamp, question, answer: '' },
         ],
       })
-      setSelectedQuestionID(() => timestamp)
+      // 有新问题开始生成时，将选中的历史清除
+      setSelectedHistory(null)
+      setSelectedQuestion(() => ({ timestamp, question, answer: '' }))
     }
 
     serverStateDispatch(ServerStateMap.AIGenerating)
-
-    if (currentModelRef.current.id === ModelMap.Baidu.id) {
-      fetchBaiduAccessToken(timestamp)
-    }
 
     const myHeaders = new Headers()
     myHeaders.append('Content-Type', 'application/json')
@@ -214,22 +170,24 @@ function MainWindow() {
             if (currentIndex === -1) {
               return
             }
-            const questionItem = questionListRef.current[currentIndex]
-            questionItem.answer = answerSnippet
+            const question = questionListRef.current[currentIndex]
+            question.answer = answerSnippet
             const before = questionListRef.current.slice(0, currentIndex)
             const after = questionListRef.current.slice(currentIndex + 1)
             // 更新一条数据
             questionListDispatch({
               type: 'update',
-              payload: [...before, questionItem, ...after],
-              updateItem: questionItem,
+              payload: [...before, question, ...after],
+              updateItem: question,
             })
+            setSelectedQuestion(() => question)
           }
         })
       }
     } catch (error) {
-      console.error(error)
-      serverStateDispatch(ServerStateMap.AIError)
+      if (serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode) {
+        serverStateDispatch(ServerStateMap.AIError)
+      }
       return
     }
     // 如果不是正常生成状态
@@ -238,208 +196,96 @@ function MainWindow() {
     }
   }
 
-  const generateWSURL = () => {
-    const time = new Date().getTime()
-    const timestamp = Math.round(time / 1000)
-    if (supplier === 'tencent') {
-      const baseURL = `asr.cloud.tencent.com/asr/v2/${import.meta.env.VITE_TENCENT_APPID}?`
-      const params = {
-        secretid: import.meta.env.VITE_TENCENT_SECRETID,
-        timestamp,
-        expired: Math.round(time / 1000) + 24 * 60 * 60,
-        nonce: Math.round(time / 100000),
-        engine_model_type: import.meta.env.VITE_TENCENT_ENGINEMODE,
-        voice_id: uuidv4(),
-        voice_format: 1,
-        filter_modal: 2,
-        needvad: 1,
-        vad_silence_time: 1500,
-      }
-      const paramsStr = queryString.stringify(params)
-      const signature = encodeURI(
-        CryptoJS.enc.Base64.stringify(
-          CryptoJS.HmacSHA1(baseURL + paramsStr, import.meta.env.VITE_TENCENT_SECRETKEY),
-        ),
-      )
-      // 记录最终请求地址
-      return `wss://${baseURL + paramsStr}&signature=${signature}`
-    } else {
-      // 请求地址根据语种不同变化
-      const url = 'wss://rtasr.xfyun.cn/v1/ws'
-      const appId = import.meta.env.VITE_XFYUN_APP_ID
-      const secretKey = import.meta.env.VITE_XFYUN_APP_KEY
-      const signatureMD5 = CryptoJS.MD5(appId + timestamp).toString()
-      const signatureSHA1 = CryptoJS.HmacSHA1(signatureMD5, secretKey)
-      const signature = encodeURIComponent(CryptoJS.enc.Base64.stringify(signatureSHA1))
-      return `${url}?appid=${appId}&ts=${timestamp}&signa=${signature}`
-    }
+  const generateAliyunWSURL = async () => {
+    const token = await getToken(
+      import.meta.env.VITE_ALIYUN_AK_ID,
+      import.meta.env.VITE_ALIYUN_AK_Secret,
+    )
+    const url = 'wss://nls-gateway-cn-shanghai.aliyuncs.com/ws/v1'
+    return `${url}?token=${token}`
   }
 
-  const handleTencentASRMessage = (data) => {
-    switch (data.code) {
-      case 0:
-        if (data.message_id === undefined) {
-          canSendMessageRef.current = true
-          serverStateDispatch(ServerStateMap.AudioConnectSuccess)
-        } else {
-          // 接收到语音转文字消息
-          if (divRef.current) {
-            divRef.current.scrollTop = divRef.current.scrollHeight
-          }
-          // 接收到消息，将实时语音识别写入新问题中
-          newQuestionRef.current = data.result.voice_text_str
-          setNewQuestion(() => data.result.voice_text_str)
-          if (data.result.slice_type === 2) {
-            // 一句话结束后开始解答
-            const timestamp = new Date().getTime()
-            const question = newQuestionRef.current
-            fetchAnswer(timestamp, question)
-          }
-        }
-        break
-      case 4002:
-        if (audioCapturerRef.current) {
-          audioCapturerRef.current.stop()
-        }
-        canSendMessageRef.current = false
-        serverStateDispatch(ServerStateMap.AudioErrorReTry)
-        wsClose(WebSocketKey)
-        setTimeout(() => {
-          connectAudioRecongnizorServer()
-        }, 500)
-        break
-      case 4007:
-        // 编码错误
-        if (audioCapturerRef.current) {
-          audioCapturerRef.current.stop()
-        }
-        canSendMessageRef.current = false
-        serverStateDispatch(ServerStateMap.AudioErrorReTry)
-        break
-      default:
-        serverStateDispatch(ServerStateMap.AudioError)
-        break
-    }
-  }
-
-  const handleXFASRMessage = (data) => {
-    switch (data.action) {
-      case 'started':
-        canSendMessageRef.current = true
+  const handleAliYunASRMessage = (data) => {
+    switch (data.header.name) {
+      case 'TranscriptionStarted':
+        canSendMessageSignal.current = true
         serverStateDispatch(ServerStateMap.AudioConnectSuccess)
         break
-      case 'result':
-        if (divRef.current) {
-          divRef.current.scrollTop = divRef.current.scrollHeight
-        }
-        const content = JSON.parse(data.data)
-        if (content) {
-          let words = ''
-          content.cn.st.rt[0].ws.forEach((item) => {
-            if (item.cw[0].wp !== 'p') {
-              words += item.cw[0].w
-            } else {
-              words += ' '
-            }
-          })
-
-          if (content.cn.st.type === '0') {
-            // 已经稳定的句子需要记录并append到显示
-            newQuestionRef.current += words
-            setNewQuestion(() => newQuestionRef.current)
-          } else {
-            // 实时替换前面所有的稳定句子和 后续的不稳定句子 此时无需实时更新ref
-            setNewQuestion(() => newQuestionRef.current + words)
-          }
-          // 如果两秒没说话 就开始回答
-          if (ASRTimeout.current) {
-            clearTimeout(ASRTimeout.current)
-          }
-          ASRTimeout.current = setTimeout(() => {
-            ASRTimeout.current = 0
-            const timestamp = new Date().getTime()
-            const question = newQuestionRef.current
-            fetchAnswer(timestamp, question)
-          }, 1500)
-        }
+      case 'TranscriptionResultChanged':
+        newQuestionRef.current = data.payload.result
+        setNewQuestion(() => newQuestionRef.current)
         break
-      case 'error':
-        if (audioCapturerRef.current) {
-          audioCapturerRef.current.stop()
-        }
-        canSendMessageRef.current = false
-        serverStateDispatch(ServerStateMap.AudioErrorReTry)
-        break
-      default:
-        serverStateDispatch(ServerStateMap.AudioError)
+      case 'SentenceEnd':
+        newQuestionRef.current = data.payload.result
+        setNewQuestion(() => newQuestionRef.current)
+        const timestamp = new Date().getTime()
+        const question = newQuestionRef.current
+        fetchAnswer(timestamp, question)
         break
     }
   }
 
-  const connectAudioRecongnizorServer = () => {
+  const connectAudioRecongnizorServer = async () => {
     serverStateDispatch(ServerStateMap.AudioConnecting)
+    const wsUrl = await generateAliyunWSURL()
 
-    // 记录最终请求地址
-    const wsUrl = generateWSURL()
+    ASRWebSocket.current = new WebSocket(wsUrl)
+    ASRWebSocket.current.onopen = () => {
+      canSendMessageSignal.current = false
+      // 开始录音
+      if (!audioCapturerRef.current) {
+        createAudioCapturer()
+      } else {
+        audioCapturerRef.current.start()
+      }
+      // 发送开始转换指令
+      ASRWebSocket.current.send(
+        JSON.stringify({
+          header: {
+            message_id: generateRandomString(32),
+            task_id: generateRandomString(32),
+            namespace: 'SpeechTranscriber',
+            name: 'StartTranscription',
+            appkey: import.meta.env.VITE_ALIYUN_ASR_KEY,
+          },
+          payload: {
+            format: 'pcm',
+            sample_rate: 16000,
+            enable_intermediate_result: true,
+            enable_punctuation_prediction: true,
+            enable_inverse_text_normalization: true,
+            // enable_semantic_sentence_detection: true,
+            max_sentence_silence: 1500,
+            enable_words: true,
+            disfluency: true,
+          },
+        }),
+      )
 
-    // 连接语音识别服务器
-    wsCreate(WebSocketKey, wsUrl)
-
-    // 注册onOpen事件
-    wsOnOpenRegister((res) => {
-      if (res.key === WebSocketKey && res.code === 200) {
-        // 此时还不能发送消息
-        canSendMessageRef.current = false
-        // 开始录音
-        if (!audioCapturerRef.current) {
-          createAudioCapturer()
-        } else {
-          audioCapturerRef.current.start()
-        }
-        // 创建成功
-        serverStateDispatch(ServerStateMap.AudioConnecting)
+      // 创建成功
+      serverStateDispatch(ServerStateMap.AudioConnecting)
+    }
+    ASRWebSocket.current.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      handleAliYunASRMessage(data)
+    }
+    ASRWebSocket.current.onclose = () => {
+      canSendMessageSignal.current = false
+      if (audioCapturerRef.current) {
+        audioCapturerRef.current.stop()
       }
-    })
-    wsOnMessageRegister((res) => {
-      if (res.key === WebSocketKey) {
-        const data = JSON.parse(res.originData)
-        // console.log('接收到服务器消息 >> :', data)
-        // 使用腾讯ASR
-        // handleTencentASRMessage(data)
-        // 使用讯飞ASR
-        switch (supplier) {
-          case 'tencent':
-            handleTencentASRMessage(data)
-            break
-          case 'xunfei':
-            handleXFASRMessage(data)
-            break
-          default:
-            handleXFASRMessage(data)
-        }
+      // 不可重试则关闭
+      if (!serverStateRef.current.reTry) {
+        serverStateDispatch(ServerStateMap.Init)
       }
-    })
-    wsOnCloseRegister((res) => {
-      if (res.key === WebSocketKey) {
-        if (audioCapturerRef.current) {
-          audioCapturerRef.current.stop()
-        }
-        canSendMessageRef.current = false
-        // 不可重试则关闭
-        if (!serverStateRef.current.reTry) {
-          serverStateDispatch(ServerStateMap.Init)
-        }
+    }
+    ASRWebSocket.current.onerror = () => {
+      canSendMessageSignal.current = false
+      if (audioCapturerRef.current) {
+        audioCapturerRef.current.stop()
       }
-    })
-    wsOnErrorRegister((res) => {
-      if (res.key === WebSocketKey) {
-        if (audioCapturerRef.current) {
-          audioCapturerRef.current.stop()
-        }
-        canSendMessageRef.current = false
-        serverStateDispatch(ServerStateMap.AudioError)
-      }
-    })
+      serverStateDispatch(ServerStateMap.AudioError)
+    }
   }
 
   const createAudioCapturer = async () => {
@@ -451,28 +297,28 @@ function MainWindow() {
       if (timeCounter.current) {
         clearInterval(timeCounter.current)
       }
-      wsClose(WebSocketKey)
+      ASRWebSocket.current.close()
       return
     }
     audioCapturerRef.current = new AudioCapturer(
       chosedWindow.current,
       (data) => {
-        if (canSendMessageRef.current && data) {
-          wsSend(WebSocketKey, data)
+        if (canSendMessageSignal.current && data) {
+          ASRWebSocket.current.send(data)
         }
       },
       () => {
-        canSendMessageRef.current = false
+        canSendMessageSignal.current = false
       },
       () => {
-        canSendMessageRef.current = false
+        canSendMessageSignal.current = false
       },
     )
     if (!audioCapturerRef.current) {
       if (timeCounter.current) {
         clearInterval(timeCounter.current)
       }
-      wsClose(WebSocketKey)
+      ASRWebSocket.current.close()
       return null
     }
     audioCapturerRef.current.start()
@@ -487,11 +333,11 @@ function MainWindow() {
       if (audioCapturerRef.current) {
         audioCapturerRef.current.stop()
       }
-      canSendMessageRef.current = false
+      canSendMessageSignal.current = false
       newQuestionRef.current = ''
       setNewQuestion('')
       fetchAnswerController.abort()
-      wsClose(WebSocketKey)
+      ASRWebSocket.current.close()
       serverStateDispatch(ServerStateMap.Init)
 
       if (timeCounter.current) {
@@ -614,18 +460,32 @@ function MainWindow() {
         return
       case ServerStateMap.AIComplete:
       case ServerStateMap.AIFailed:
-        const selectedQuestion = questionList.filter(
-          (item) => item.timestamp === selectedQuestionID,
-        )?.[0]
-        if (selectedQuestion) {
-          fetchAnswer(selectedQuestion.timestamp, selectedQuestion.question, true)
+        const question = questionList.filter((item) => item.timestamp === selectedQuestion)?.[0]
+        if (question) {
+          fetchAnswer(question.timestamp, question.question, true)
         }
         break
     }
   }
 
   const handleQuestionClick = (id) => {
-    setSelectedQuestionID(id)
+    if (serverStateRef.current.stateCode === ServerStateMap.AIGenerating.stateCode) {
+      return
+    }
+    setSelectedHistory(null)
+    setSelectedQuestion(questionList.find((item) => item.timestamp === id))
+    if (serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode) {
+      serverStateDispatch(ServerStateMap.AIComplete)
+    }
+  }
+
+  const handleHistorySelect = (quesiton) => {
+    // 生成状态下不可点击？
+    if (serverStateRef.current.stateCode === ServerStateMap.AIGenerating.stateCode) {
+      return
+    }
+    setSelectedQuestion(null)
+    setSelectedHistory(quesiton)
     if (serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode) {
       serverStateDispatch(ServerStateMap.AIComplete)
     }
@@ -716,34 +576,6 @@ function MainWindow() {
     }
   }
 
-  useEffect(() => {
-    if (serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode) {
-      if (audioCapturerRef.current) {
-        audioCapturerRef.current.stop()
-      }
-      canSendMessageRef.current = false
-      serverStateDispatch(ServerStateMap.Init)
-      wsClose(WebSocketKey)
-      setTimeout(() => {
-        connectAudioRecongnizorServer()
-      }, 500)
-    }
-  }, [supplier])
-
-  useEffect(() => {
-    switch (model) {
-      case ModelMap.Gemini.id:
-        currentModelRef.current = ModelMap.Gemini
-        break
-      case ModelMap.Aliyun.id:
-        currentModelRef.current = ModelMap.Aliyun
-        break
-      case ModelMap.Baidu.id:
-        currentModelRef.current = ModelMap.Baidu
-        break
-    }
-  }, [model])
-
   const customComponents = {
     code({ children, className, ...props }) {
       const match = /language-(\w+)/.exec(className || '')
@@ -763,14 +595,17 @@ function MainWindow() {
     <>
       <Topbar />
       <Layout className="bg-white dark:bg-zinc-700">
-        <Sidebar className="p-2">
-          <QuestionList
-            list={questionList}
-            newQuestion={newQuestion}
-            selected={selectedQuestionID}
-            onSelect={handleQuestionClick}
-          />
-          {/* 这里加上HistoryList 内部自动加载历史记录 传出历史记录点击事件 */}
+        <Sidebar>
+          {/* 问题更新时，选中问题，清除历史的选中状态 */}
+          <ScrollArea>
+            <QuestionList
+              list={questionList}
+              newQuestion={newQuestion}
+              selected={selectedQuestion}
+              onSelect={handleQuestionClick}
+            />
+            <HistoryQuestions selected={selectedHistory} onSelect={handleHistorySelect} />
+          </ScrollArea>
         </Sidebar>
         <Content className="p-2 flex flex-col bg-zinc-100 dark:bg-zinc-600">
           <Markdown
@@ -778,10 +613,13 @@ function MainWindow() {
             remarkPlugins={[remarkGfm]}
             components={customComponents}
           >
-            {questionList.filter((item) => item.timestamp === selectedQuestionID)?.[0]?.answer ||
-              ''}
+            {selectedQuestion?.answer || selectedHistory?.answer}
           </Markdown>
-          <Prompt start={handleStart} reGenerate={handleRegenerate} serverState={serverState} />
+          <ActionButton
+            start={handleStart}
+            reGenerate={handleRegenerate}
+            serverState={serverState}
+          />
           <ChoseWindowDialog
             open={choseWindowOpen}
             setOpen={setChoseWindowOpen}
