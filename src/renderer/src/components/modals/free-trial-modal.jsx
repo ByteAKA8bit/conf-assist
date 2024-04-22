@@ -51,12 +51,10 @@ export const FreeTrialModal = () => {
         requestOptions,
       )
       const result = await response.json()
-      if (
-        result.code === 500 &&
-        result.data.includes('UNIQUE constraint failed: free_trial.machine_id')
-      ) {
-        localStorage.freeTrialTimeleft = 0
-        localStorage.freeTrial = 'expired'
+      if (result.code === 400 && result?.data?.timeleft) {
+        localStorage.freeTrialTimeleft = result.data.timeleft
+        localStorage.freeTrial = new Date().getTime()
+        return
       }
       if (result.code !== 200) {
         throw new Error('服务器返回错误')
@@ -104,7 +102,7 @@ export const FreeTrialModal = () => {
           </DialogTitle>
           {localStorage.freeTrial !== 'expired' ? (
             <DialogDescription className="text-center">
-              剩余{convertToText(localStorage.freeTrialTimeleft || 15 * 60 * 1000)}
+              剩余{convertToText(localStorage.freeTrialTimeleft || 10 * 60 * 1000)}
               的免费试用时间，激活后失效
             </DialogDescription>
           ) : (
