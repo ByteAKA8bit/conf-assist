@@ -166,7 +166,11 @@ export const ModelMap = {
       JSON.stringify({
         model: 'qwen-turbo',
         input: {
-          prompt: localStorage.promptPrefix ? localStorage.promptPrefix + question : question,
+          prompt:
+            `${localStorage.promptPrefix ? localStorage.promptPrefix : ''}` +
+            question +
+            `${localStorage.Industry ? '；该问题主要针对' + localStorage.Industry + '行业' : ''}` +
+            `${localStorage.Position ? '；该问题主要针对' + localStorage.Position + '岗位' : ''}`,
         },
         parameters: {
           enable_search: true,
@@ -175,4 +179,10 @@ export const ModelMap = {
       }),
     valuePath: ['output', 'text'],
   },
+}
+
+export const IndustryList = {
+  互联网: ['产品经理', '运营', '设计', '前端开发', '后端开发', '测试', '运维'],
+  媒体: ['短视频编导', '直播', '市场营销', '运营', '推广', '数据分析'],
+  金融: ['客户经理', '证券交易', '量化研究', '风控', '法务', '投资经理', '数据分析师'],
 }

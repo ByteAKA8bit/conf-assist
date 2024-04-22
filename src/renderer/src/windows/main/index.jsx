@@ -196,7 +196,7 @@ function MainWindow() {
     }
   }
 
-  const generateAliyunWSURL = async () => {
+  const generateWSURL = async () => {
     const token = await getToken(
       import.meta.env.VITE_ALIYUN_AK_ID,
       import.meta.env.VITE_ALIYUN_AK_Secret,
@@ -205,7 +205,7 @@ function MainWindow() {
     return `${url}?token=${token}`
   }
 
-  const handleAliYunASRMessage = (data) => {
+  const handleASRMessage = (data) => {
     switch (data.header.name) {
       case 'TranscriptionStarted':
         canSendMessageSignal.current = true
@@ -227,7 +227,7 @@ function MainWindow() {
 
   const connectAudioRecongnizorServer = async () => {
     serverStateDispatch(ServerStateMap.AudioConnecting)
-    const wsUrl = await generateAliyunWSURL()
+    const wsUrl = await generateWSURL()
 
     ASRWebSocket.current = new WebSocket(wsUrl)
     ASRWebSocket.current.onopen = () => {
@@ -267,7 +267,7 @@ function MainWindow() {
     }
     ASRWebSocket.current.onmessage = (event) => {
       const data = JSON.parse(event.data)
-      handleAliYunASRMessage(data)
+      handleASRMessage(data)
     }
     ASRWebSocket.current.onclose = () => {
       canSendMessageSignal.current = false
@@ -493,11 +493,15 @@ function MainWindow() {
 
   const updateActiveTimeleft = async () => {
     const controller = new AbortController()
-    const timerId = setTimeout(() => controller.abort(), 3000)
+    if (!localStorage.machineID) {
+      localStorage.machineID = await getMachineID()
+    }
+    const timerId = setTimeout(() => controller.abort(), 5000)
     const myHeaders = new Headers()
     myHeaders.append('Content-Type', 'application/json')
 
     const raw = JSON.stringify({
+      machineID: localStorage.machineID,
       id: localStorage.activeID,
       timeleft: Number(localStorage.activeTimeleft),
     })
@@ -514,7 +518,22 @@ function MainWindow() {
       const response = await fetch(`${ActiveBaseUrl}/update-active-timeleft`, requestOptions)
       const result = await response.json()
       if (result.code !== 200) {
-        throw new Error('更新剩余时间失败')
+        if (result.code === 400 && result?.data?.timeleft) {
+          // 本地时间比服务器的长, 重置本地时间
+          if (localStorage.activeTimeleft > result.data.timeleft) {
+            localStorage.activeTimeleft = result.data.timeleft
+          }
+          if (result.data.timeleft <= 0) {
+            localStorage.activeTimeleft = timeleft
+            localStorage.actived = 0
+            setTimeout(() => {
+              openDialog('active')
+            }, 1000)
+          }
+          return
+        } else {
+          throw new Error('更新剩余时间失败')
+        }
       }
       const { timeleft } = result.data
       localStorage.activeTimeleft = timeleft
@@ -536,7 +555,7 @@ function MainWindow() {
       localStorage.machineID = await getMachineID()
     }
     const controller = new AbortController()
-    const timerId = setTimeout(() => controller.abort(), 3000)
+    const timerId = setTimeout(() => controller.abort(), 5000)
     const myHeaders = new Headers()
     myHeaders.append('Content-Type', 'application/json')
 
@@ -557,7 +576,22 @@ function MainWindow() {
       const response = await fetch(`${ActiveBaseUrl}/update-free-trial`, requestOptions)
       const result = await response.json()
       if (result.code !== 200) {
-        throw new Error('更新试用时间失败')
+        if (result.code === 400 && result?.data?.timeleft) {
+          // 本地时间比服务器的长,重置本地时间
+          if (localStorage.freeTrialTimeleft > result.data.timeleft) {
+            localStorage.freeTrialTimeleft = result.data.timeleft
+          }
+          if (result.data.timeleft <= 0) {
+            localStorage.freeTrial = 'expired'
+            localStorage.freeTrialTimeleft = 0
+            setTimeout(() => {
+              openDialog('activeCode')
+            }, 1000)
+          }
+          return
+        } else {
+          throw new Error('更新试用时间失败')
+        }
       }
       const { expired, timeleft } = result.data
       if (expired) {

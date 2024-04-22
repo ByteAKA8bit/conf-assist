@@ -1,7 +1,7 @@
 import * as z from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Form, FormControl, FormField, FormItem } from '@components/ui/form'
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@components/ui/form'
 import { Textarea } from '@components/ui/textarea'
 import { Button } from '@components/ui/button'
 import { useToast } from '@components/ui/use-toast'
@@ -71,10 +71,11 @@ export const PromptManageModal = () => {
                       <Textarea
                         disabled={isLoading}
                         className="bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0 dark:bg-zinc-400/50 dark:text-white"
-                        placeholder="请将问题回答分为核心回答和详细回答，核心回答尽量简化为一句话："
+                        placeholder="请你扮演一个xxx岗位的面试者，我会问你一些面试的问题，请将问题回答分为核心回答和详细回答，核心回答尽量概括为一句话："
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage className="text-rose-400" />
                   </FormItem>
                 )}
               />

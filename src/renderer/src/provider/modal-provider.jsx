@@ -3,6 +3,7 @@ import { ActiveModal } from '@/components/modals/active-modal'
 import { PromptManageModal } from '@/components/modals/prompt-manage-modal'
 import { FreeTrialModal } from '@/components/modals/free-trial-modal'
 import { ActiveCodeModal } from '@/components/modals/active-code-modal'
+import { FieldManageModal } from '@/components/modals/field-manage-modal'
 
 export const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false)
@@ -21,6 +22,7 @@ export const ModalProvider = () => {
       <ActiveModal />
       <FreeTrialModal />
       <ActiveCodeModal />
+      <FieldManageModal />
     </>
   )
 }

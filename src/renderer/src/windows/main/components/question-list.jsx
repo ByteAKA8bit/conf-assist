@@ -16,7 +16,10 @@ export const QuestionList = ({ list, newQuestion, selected, onSelect }) => {
   return (
     <div className="overflow-auto px-2">
       {!!newQuestion && (
-        <Question className="bg-zinc-200 dark:bg-zinc-800" question={{ question: newQuestion }} />
+        <Question
+          className="bg-zinc-200 dark:bg-zinc-800/50"
+          question={{ question: newQuestion }}
+        />
       )}
       {list
         .map((question) => {
@@ -26,7 +29,7 @@ export const QuestionList = ({ list, newQuestion, selected, onSelect }) => {
               className={
                 question.timestamp === selected?.timestamp &&
                 !newQuestion &&
-                'bg-zinc-200 dark:bg-zinc-800'
+                'bg-zinc-200 dark:bg-zinc-800/50'
               }
               key={question.timestamp}
               question={question}
@@ -47,7 +50,7 @@ const Question = ({ question, className, onClick }) => {
     <div
       onClick={handleClick}
       className={cn(
-        'mt-2 p-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-600 rounded-xl text-sm dark:hover:bg-zinc-800/50 scroll-smooth',
+        'mt-2 p-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-600 rounded-xl text-sm dark:hover:bg-zinc-800 scroll-smooth',
         className,
       )}
     >

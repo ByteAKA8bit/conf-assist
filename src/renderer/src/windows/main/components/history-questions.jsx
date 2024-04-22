@@ -49,7 +49,7 @@ export const HistoryQuestions = ({ selected, onSelect }) => {
         {Object.entries(history).map(([date, questions]) => {
           return (
             <AccordionItem value={date} key={date} className="border-b-0 m-1 rounded-xl">
-              <AccordionTrigger className="m-0 p-3 hover:no-underline hover:bg-zinc-800 rounded-xl [&[data-state=open]]:bg-zinc-800">
+              <AccordionTrigger className="m-0 p-3 hover:no-underline hover:bg-zinc-300 dark:hover:bg-zinc-800 rounded-xl data-[state=open]:bg-zinc-200 dark:data-[state=open]:bg-zinc-800/50">
                 {date}
               </AccordionTrigger>
               <AccordionContent className="p-0 m-1">
@@ -59,7 +59,8 @@ export const HistoryQuestions = ({ selected, onSelect }) => {
                       key={question.timestamp}
                       question={question}
                       className={
-                        question.timestamp === selected?.timestamp && 'bg-zinc-200 dark:bg-zinc-800'
+                        question.timestamp === selected?.timestamp &&
+                        'bg-zinc-200 dark:bg-zinc-800/50'
                       }
                       onClick={handleQuestionClick}
                     />
@@ -83,7 +84,7 @@ const Question = ({ question, className, onClick }) => {
     <div
       onClick={handleClick}
       className={cn(
-        'mt-2 p-3 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-600 rounded-xl text-sm dark:hover:bg-zinc-800/50',
+        'mt-2 p-3 bg-zinc-100 hover:bg-zinc-300 dark:bg-zinc-600 rounded-xl text-sm dark:hover:bg-zinc-800',
         className,
       )}
     >

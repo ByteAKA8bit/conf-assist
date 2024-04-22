@@ -5,9 +5,9 @@ import { LuXCircle, LuMinusCircle, LuMaximize, LuMinimize2 } from 'react-icons/l
 import { Button } from '@components/ui/button'
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -18,12 +18,14 @@ import {
 import { openExternal } from '@/utils'
 import { useTheme } from '@/provider/theme-provider'
 import { useDialog } from '@/hooks/use-dialog'
+import { useIndustry } from '@/hooks/use-industry'
 
 export const Topbar = () => {
   const [maxmized, setMaxmized] = useState(false)
 
   const { setTheme } = useTheme()
   const { openDialog } = useDialog()
+  const { industryList, industry, position, setIndustry } = useIndustry()
 
   const closeWindow = window.electron.close
   const minimizeWindow = window.electron.minimize
@@ -46,29 +48,61 @@ export const Topbar = () => {
               设置
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="dark:bg-zinc-600 min-w-24" align="start">
+          <DropdownMenuContent className="dark:bg-zinc-600" align="start">
             <DropdownMenuItem className="hidden">语音识别热词</DropdownMenuItem>
             <DropdownMenuItem onClick={() => openDialog('promptManage')}>
               预设提示词
             </DropdownMenuItem>
             <DropdownMenuSub>
+              <DropdownMenuSubTrigger>行业选择</DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="dark:bg-zinc-600">
+                {Object.entries(industryList).map(([key, value]) => {
+                  return (
+                    <DropdownMenuSub key={key}>
+                      <DropdownMenuSubTrigger>{key}</DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="dark:bg-zinc-600">
+                        {value.map((item) => {
+                          return (
+                            <DropdownMenuCheckboxItem
+                              checked={industry === key && position === item}
+                              onClick={() => {
+                                setIndustry({ industry: key, position: item })
+                              }}
+                              key={item}
+                            >
+                              {item}
+                            </DropdownMenuCheckboxItem>
+                          )
+                        })}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  )
+                })}
+                <DropdownMenuItem
+                  onClick={() => {
+                    openDialog('fieldManage')
+                  }}
+                >
+                  自定义
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+            <DropdownMenuSub>
               <DropdownMenuSubTrigger>颜色模式</DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="dark:bg-zinc-600 min-w-24">
-                  <DropdownMenuItem onClick={() => setTheme('light')}>
-                    <Sun className="w-5 mr-2 transition-all" />
-                    浅色模式
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme('dark')}>
-                    <Moon className="w-5 mr-2 transition-all" />
-                    深色模式
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setTheme('system')}>
-                    <SunMoon className="w-5 mr-2 transition-all" />
-                    跟随系统
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
+              <DropdownMenuSubContent className="dark:bg-zinc-600">
+                <DropdownMenuItem onClick={() => setTheme('light')}>
+                  <Sun className="w-5 mr-2 transition-all" />
+                  浅色模式
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('dark')}>
+                  <Moon className="w-5 mr-2 transition-all" />
+                  深色模式
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme('system')}>
+                  <SunMoon className="w-5 mr-2 transition-all" />
+                  跟随系统
+                </DropdownMenuItem>
+              </DropdownMenuSubContent>
             </DropdownMenuSub>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -82,7 +116,7 @@ export const Topbar = () => {
               激活
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="dark:bg-zinc-600 min-w-24" align="start">
+          <DropdownMenuContent className="dark:bg-zinc-600" align="start">
             <DropdownMenuItem onClick={() => openDialog('freeTrial')}>试用</DropdownMenuItem>
             <DropdownMenuItem onClick={() => openDialog('active')}>激活</DropdownMenuItem>
             <DropdownMenuItem onClick={() => openDialog('activeCode')}>获取激活码</DropdownMenuItem>
