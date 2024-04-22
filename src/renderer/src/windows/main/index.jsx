@@ -379,7 +379,16 @@ function MainWindow() {
       return
     }
 
-    await requestMediaAccess('microphone')
+    const result = await requestMediaAccess('microphone')
+    if (result === 'BlackHole_NOT_INSTALL') {
+      toast({
+        title: '请先安装BlackHole',
+        duration: 3000,
+        className:
+          'bg-rose-400/90 fixed top-10 right-4 w-1/4 text-white border-0 data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-top-full',
+      })
+      return
+    }
     await requestMediaAccess('screen')
     const sources = await audioGetSource()
     setAllWindow(sources)

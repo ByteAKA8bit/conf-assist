@@ -1,5 +1,17 @@
 import { systemPreferences } from 'electron'
 
+// 检查用户电脑是否有安装SoundFlower或者BlackHole
+
+async function getIfAlreadyInstallSoundFlowerOrBlackHole() {
+  const devices = await navigator.mediaDevices.enumerateDevices()
+
+  return devices.some(
+    (device) =>
+      device.label.includes('Soundflower (2ch)') ||
+      device.label.includes('BlackHole 2ch (Virtual)'),
+  )
+}
+
 /**
  * 请求媒体权限 MacOS
  * @param mediaType
@@ -7,6 +19,14 @@ import { systemPreferences } from 'electron'
 export const requestMediaAccess = async (mediaType) => {
   try {
     if (process.platform === 'darwin' || process.platform === 'win32') {
+      // mac 需要引导用户安装blackHole
+      if (process.platform === 'darwin') {
+        if (!(await getIfAlreadyInstallSoundFlowerOrBlackHole())) {
+          // 没安装
+          return 'BlackHole_NOT_INSTALL'
+        }
+      }
+
       // 获取当前媒体设备（在这里指麦克风或摄像头）的访问权限状态
       const privilege = systemPreferences.getMediaAccessStatus(mediaType)
 
