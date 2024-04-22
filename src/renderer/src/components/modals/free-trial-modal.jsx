@@ -62,7 +62,7 @@ export const FreeTrialModal = () => {
         throw new Error('服务器返回错误')
       }
       if (localStorage.freeTrialTimeleft === undefined) {
-        localStorage.freeTrialTimeleft = 900000
+        localStorage.freeTrialTimeleft = 600000
         localStorage.freeTrial = new Date().getTime()
       }
       closeDialog()
