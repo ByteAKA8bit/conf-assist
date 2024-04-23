@@ -54,6 +54,7 @@ export const FreeTrialModal = () => {
       if (result.code === 400 && result?.data?.timeleft) {
         localStorage.freeTrialTimeleft = result.data.timeleft
         localStorage.freeTrial = new Date().getTime()
+        closeDialog()
         return
       }
       if (result.code !== 200) {
