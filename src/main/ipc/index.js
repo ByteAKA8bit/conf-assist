@@ -38,12 +38,21 @@ function getMachineID() {
   })
 }
 
+function openDevTools() {
+  ipcMain.on('openDevTools', () => {
+    targetWindows.forEach((window) => {
+      window.webContents.openDevTools()
+    })
+  })
+}
+
 export default function registerIPC(windows) {
   targetWindows = windows
   registerPermissionAccess()
   registerGetAuidoSource()
   registerOpenExternal()
   getMachineID()
+  openDevTools()
 
   // Todo 窗口最大最小关闭控制 这里还是不精确 需要后期修正
   ipcMain.on('close', () => {

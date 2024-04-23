@@ -82,6 +82,10 @@
     -webkit-app-region: no-drag;
   }
 
+  img {
+    -webkit-app-region: no-drag;
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;

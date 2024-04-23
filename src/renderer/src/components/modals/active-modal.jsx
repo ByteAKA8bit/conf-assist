@@ -73,8 +73,8 @@ export const ActiveModal = () => {
       localStorage.activeID = result.data.id
       localStorage.activeTimeleft = result.data.timeleft
       // 试用失效
-      localStorage.freeTrialTimeleft = 0
-      localStorage.freeTrial = 'expired'
+      localStorage.FreeTrialTimeleft = 0
+      localStorage.FreeTrial = 'expired'
       setActived(true)
     } catch (error) {
       console.error(error)
@@ -134,8 +134,8 @@ export const ActiveModal = () => {
               />
               <DialogFooter className="flex items-center pb-4">
                 <span className="text-zinc-400 text-xs">
-                  {localStorage.freeTrial !== 'expired'
-                    ? `免费试用时间剩余：${convertToText(localStorage.freeTrialTimeleft || 15 * 60 * 1000)}`
+                  {localStorage.FreeTrial !== 'expired'
+                    ? `免费试用时间剩余：${convertToText(localStorage.FreeTrialTimeleft || 15 * 60 * 1000)}`
                     : '免费试用已结束'}
                 </span>
 

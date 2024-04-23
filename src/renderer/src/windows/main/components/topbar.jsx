@@ -15,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu'
 
-import { openExternal } from '@/utils'
+import { openDevTools, openExternal } from '@/utils'
 import { useTheme } from '@/provider/theme-provider'
 import { useDialog } from '@/hooks/use-dialog'
 import { useIndustry } from '@/hooks/use-industry'
@@ -27,6 +27,8 @@ export const Topbar = () => {
   const { openDialog } = useDialog()
   const { industryList, industry, position, setIndustry } = useIndustry()
 
+  const [devCounter, setDevCounter] = useState(0)
+
   const closeWindow = window.electron.close
   const minimizeWindow = window.electron.minimize
   const maxmizeWindow = () => {
@@ -34,10 +36,23 @@ export const Topbar = () => {
     window.electron.maxmize()
   }
 
+  const handleIconClick = () => {
+    setDevCounter(devCounter + 1)
+    if (devCounter === 10) {
+      setDevCounter(0)
+      openDevTools()
+    }
+  }
+
   return (
     <div className="absolute h-10 w-full border-b-[1px] bg-white flex justify-start items-center dark:bg-zinc-700 dark:border-zinc-800/50">
       <header className="w-[calc(100vw-80px)] h-full flex justify-start items-center pl-2 inset-0 bg-transparent">
-        <img className="w-5 h-5 mr-1" src="./images/icon.svg" alt="conf-assist" />
+        <img
+          onClick={handleIconClick}
+          className="w-5 h-5 mr-1"
+          src="./images/icon.svg"
+          alt="conf-assist"
+        />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

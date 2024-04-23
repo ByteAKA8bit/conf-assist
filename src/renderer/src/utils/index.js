@@ -15,4 +15,5 @@ export function generateRandomString(length) {
   return result
 }
 
-export const { requestMediaAccess, audioGetSource, openExternal, getMachineID } = window.api
+export const { requestMediaAccess, audioGetSource, openExternal, getMachineID, openDevTools } =
+  window.api

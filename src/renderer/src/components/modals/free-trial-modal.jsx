@@ -24,7 +24,7 @@ export const FreeTrialModal = () => {
   }
 
   const startFreeTrial = async () => {
-    if (localStorage.freeTrial && localStorage.freeTrial !== 'expired') {
+    if (localStorage.FreeTrial && localStorage.FreeTrial !== 'expired') {
       closeDialog()
       return
     }
@@ -52,17 +52,17 @@ export const FreeTrialModal = () => {
       )
       const result = await response.json()
       if (result.code === 400 && result?.data?.timeleft) {
-        localStorage.freeTrialTimeleft = result.data.timeleft
-        localStorage.freeTrial = new Date().getTime()
+        localStorage.FreeTrialTimeleft = result.data.timeleft
+        localStorage.FreeTrial = new Date().getTime()
         closeDialog()
         return
       }
       if (result.code !== 200) {
         throw new Error('服务器返回错误')
       }
-      if (localStorage.freeTrialTimeleft === undefined) {
-        localStorage.freeTrialTimeleft = 600000
-        localStorage.freeTrial = new Date().getTime()
+      if (localStorage.FreeTrialTimeleft === undefined) {
+        localStorage.FreeTrialTimeleft = 600000
+        localStorage.FreeTrial = new Date().getTime()
       }
       closeDialog()
     } catch (error) {
@@ -99,18 +99,18 @@ export const FreeTrialModal = () => {
       >
         <DialogHeader className="pt-8 px-6">
           <DialogTitle className="text-2xl text-center font-bold">
-            免费试用{localStorage.freeTrial === 'expired' && '已结束'}
+            免费试用{localStorage.FreeTrial === 'expired' && '已结束'}
           </DialogTitle>
-          {localStorage.freeTrial !== 'expired' ? (
+          {localStorage.FreeTrial !== 'expired' ? (
             <DialogDescription className="text-center">
-              剩余{convertToText(localStorage.freeTrialTimeleft || 10 * 60 * 1000)}
+              剩余{convertToText(localStorage.FreeTrialTimeleft || 10 * 60 * 1000)}
               的免费试用时间，激活后失效
             </DialogDescription>
           ) : (
             <DialogDescription className="text-center">请获取激活码后激活使用</DialogDescription>
           )}
         </DialogHeader>
-        {localStorage.freeTrial !== 'expired' ? (
+        {localStorage.FreeTrial !== 'expired' ? (
           <DialogFooter className="px-6 pb-4">
             <Button
               disabled={loading}
@@ -122,7 +122,7 @@ export const FreeTrialModal = () => {
               激活
             </Button>
             <Button disabled={loading} onClick={startFreeTrial}>
-              {localStorage.freeTrial && localStorage.freeTrial !== 'expired'
+              {localStorage.FreeTrial && localStorage.FreeTrial !== 'expired'
                 ? '继续试用'
                 : '开始试用'}
             </Button>

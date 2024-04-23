@@ -344,7 +344,7 @@ function MainWindow() {
         clearInterval(timeCounter.current)
       }
 
-      if (localStorage.freeTrial && localStorage.freeTrial !== 'expired') {
+      if (localStorage.FreeTrial && localStorage.FreeTrial !== 'expired') {
         updateFreeTrial()
       }
       if (localStorage.actived) {
@@ -355,7 +355,7 @@ function MainWindow() {
     }
 
     // 未点击试用,打开试用窗口
-    if (localStorage.freeTrial === undefined) {
+    if (localStorage.FreeTrial === undefined) {
       toast({
         title: '请点击开始试用',
         duration: 1500,
@@ -369,7 +369,7 @@ function MainWindow() {
     }
 
     // 试用过期，无激活
-    if (localStorage.freeTrial === 'expired' && localStorage.actived !== '1') {
+    if (localStorage.FreeTrial === 'expired' && localStorage.actived !== '1') {
       toast({
         title: '未激活，无试用权限',
         duration: 1500,
@@ -401,7 +401,7 @@ function MainWindow() {
     chosedWindow.current = source
 
     // 开始前更新一次
-    if (localStorage.freeTrial && localStorage.freeTrial !== 'expired') {
+    if (localStorage.FreeTrial && localStorage.FreeTrial !== 'expired') {
       updateFreeTrial()
     }
     if (localStorage.actived) {
@@ -409,14 +409,14 @@ function MainWindow() {
     }
 
     // 有试用，无激活
-    if (localStorage.freeTrial !== 'expired' && localStorage.freeTrialTimeleft !== undefined) {
+    if (localStorage.FreeTrial !== 'expired' && localStorage.FreeTrialTimeleft !== undefined) {
       // 算剩余时间
       timeCounter.current = setInterval(() => {
-        const freeTrialTimeleft = Number(localStorage.freeTrialTimeleft)
+        const freeTrialTimeleft = Number(localStorage.FreeTrialTimeleft)
         if (freeTrialTimeleft <= 0) {
           // 试用结束
-          localStorage.freeTrial = 'expired'
-          localStorage.freeTrialTimeleft = 0
+          localStorage.FreeTrial = 'expired'
+          localStorage.FreeTrialTimeleft = 0
           clearInterval(timeCounter.current)
           toast({
             title: '试用结束',
@@ -429,7 +429,7 @@ function MainWindow() {
             openDialog('freeTrial')
           }, 1500)
         } else {
-          localStorage.freeTrialTimeleft = freeTrialTimeleft - 1000
+          localStorage.FreeTrialTimeleft = freeTrialTimeleft - 1000
           // 每分钟更新一次
           if (freeTrialTimeleft % 60000 === 0) {
             updateFreeTrial()
@@ -570,7 +570,7 @@ function MainWindow() {
 
     const raw = JSON.stringify({
       machineID: localStorage.machineID,
-      timeleft: Number(localStorage.freeTrialTimeleft),
+      timeleft: Number(localStorage.FreeTrialTimeleft),
     })
 
     const requestOptions = {
@@ -587,12 +587,12 @@ function MainWindow() {
       if (result.code !== 200) {
         if (result.code === 400 && result?.data?.timeleft) {
           // 本地时间比服务器的长,重置本地时间
-          if (localStorage.freeTrialTimeleft > result.data.timeleft) {
-            localStorage.freeTrialTimeleft = result.data.timeleft
+          if (localStorage.FreeTrialTimeleft > result.data.timeleft) {
+            localStorage.FreeTrialTimeleft = result.data.timeleft
           }
           if (result.data.timeleft <= 0) {
-            localStorage.freeTrial = 'expired'
-            localStorage.freeTrialTimeleft = 0
+            localStorage.FreeTrial = 'expired'
+            localStorage.FreeTrialTimeleft = 0
             setTimeout(() => {
               openDialog('activeCode')
             }, 1000)
@@ -604,13 +604,13 @@ function MainWindow() {
       }
       const { expired, timeleft } = result.data
       if (expired) {
-        localStorage.freeTrial = 'expired'
-        localStorage.freeTrialTimeleft = 0
+        localStorage.FreeTrial = 'expired'
+        localStorage.FreeTrialTimeleft = 0
         setTimeout(() => {
           openDialog('activeCode')
         }, 1000)
       } else {
-        localStorage.freeTrialTimeleft = timeleft
+        localStorage.FreeTrialTimeleft = timeleft
       }
     } catch (error) {
       console.error(error)
