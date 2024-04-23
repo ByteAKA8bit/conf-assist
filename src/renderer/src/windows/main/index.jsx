@@ -53,14 +53,14 @@ function MainWindow() {
     switch (type) {
       case 'insert':
         // 取最后一条数据，push
-        db.open([{ name: 'quesiton', keyPath: 'timestamp' }]).then(() => {
+        db.open([{ name: 'question', keyPath: 'timestamp' }]).then(() => {
           db.put('question', payload[payload.length - 1]).then(() => {
             db.close()
           })
         })
         break
       case 'update':
-        db.open([{ name: 'quesiton', keyPath: 'timestamp' }]).then(() => {
+        db.open([{ name: 'question', keyPath: 'timestamp' }]).then(() => {
           db.put('question', action.updateItem).then(() => {
             db.close()
           })
@@ -488,13 +488,13 @@ function MainWindow() {
     }
   }
 
-  const handleHistorySelect = (quesiton) => {
+  const handleHistorySelect = (question) => {
     // 生成状态下不可点击？
     if (serverStateRef.current.stateCode === ServerStateMap.AIGenerating.stateCode) {
       return
     }
     setSelectedQuestion(null)
-    setSelectedHistory(quesiton)
+    setSelectedHistory(question)
     if (serverStateRef.current.stateCode !== ServerStateMap.Init.stateCode) {
       serverStateDispatch(ServerStateMap.AIComplete)
     }

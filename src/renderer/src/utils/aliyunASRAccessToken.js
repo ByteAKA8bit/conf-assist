@@ -37,7 +37,6 @@ async function getToken(accessKeyId, accessKeySecret) {
   }
 
   const queryString = encodeDict(parameters)
-  console.log(queryString)
 
   const stringToSign = `GET&${encodeText('/')}&${encodeText(queryString)}`
 
@@ -45,7 +44,6 @@ async function getToken(accessKeyId, accessKeySecret) {
     CryptoJS.HmacSHA1(stringToSign, `${accessKeySecret}&`),
   )
   const encodedSignature = encodeText(signature)
-  console.log(encodedSignature)
 
   const hostname = 'nls-meta.cn-shanghai.aliyuncs.com'
   const pathName = `/?Signature=${encodedSignature}&${queryString}`

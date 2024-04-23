@@ -20,7 +20,7 @@ export const HistoryQuestions = ({ selected, onSelect }) => {
   useEffect(() => {
     // 查询到今天为止的所有问题，并通过天进行分类
     const range = IDBKeyRange.bound(0, new Date().getTime())
-    db.open([{ name: 'quesiton', keyPath: 'timestamp' }]).then(() => {
+    db.open([{ name: 'question', keyPath: 'timestamp' }]).then(() => {
       db.query('question', range).then((res) => {
         const records = {}
         res.reverse().forEach((item) => {
