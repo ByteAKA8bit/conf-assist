@@ -469,9 +469,8 @@ function MainWindow() {
         return
       case ServerStateMap.AIComplete:
       case ServerStateMap.AIFailed:
-        const question = questionList.filter((item) => item.timestamp === selectedQuestion)?.[0]
-        if (question) {
-          fetchAnswer(question.timestamp, question.question, true)
+        if (selectedQuestion) {
+          fetchAnswer(selectedQuestion.timestamp, selectedQuestion.question, true)
         }
         break
     }
