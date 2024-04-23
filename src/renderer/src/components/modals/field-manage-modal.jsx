@@ -121,7 +121,7 @@ export const FieldManageModal = () => {
                 </FormItem>
               )}
             />
-            <DialogFooter className="px-6 pt-4 pb-2">
+            <DialogFooter className="px-0 pt-4 pb-4">
               <Button disabled={isLoading} variant="primary">
                 保存
               </Button>
