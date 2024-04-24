@@ -34,6 +34,10 @@ export const PromptManageModal = () => {
 
   const isLoading = form.formState.isSubmitting
 
+  if (localStorage.promptPrefix === undefined) {
+    localStorage.promptPrefix = '请将问题回答分为核心回答和详细回答，核心回答尽量概括为一句话：'
+  }
+
   const onSubmit = (values) => {
     localStorage.promptPrefix = values.prefix
 
@@ -57,6 +61,8 @@ export const PromptManageModal = () => {
           <DialogTitle className="text-2xl text-center font-bold">预设提示词</DialogTitle>
           <DialogDescription className="text-center">
             在问题前添加前缀，可使模型按照自己需要的方式生成回答
+            <br />
+            如果不知道这是什么不建议修改
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
